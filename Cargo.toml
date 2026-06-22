@@ -1,0 +1,10 @@
+[package]
+name = "image-culling-tool"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+image = "0.25.9"
+eframe = { git = "https://github.com/MarkGhebrial/egui", branch = "opencv" }
+epaint = { git = "https://github.com/MarkGhebrial/egui", branch = "opencv", features = ["opencv"] }
+chrono = "0.4.43"
