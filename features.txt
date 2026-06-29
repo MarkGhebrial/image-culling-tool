@@ -1,0 +1,11 @@
+Features I want:
+- Invoke `cull` on the command line, in a directory of images.
+    - (nice to have) A progress bar shows image loading progress
+    - Loads all images with jpeg extensions
+- Quickly (instantly!) move through the images using arrow keys, in order of creation date
+- Rate images using number keys
+    - 1-5: Corresponding star amount
+    - '`': Remove the rating
+- (nice to have) Filter images based on rating
+- Copy all images above a certain rating to a new folder (accepted)
+- (maybe) show carousel of photos at the bottom of the window

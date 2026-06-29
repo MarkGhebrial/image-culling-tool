@@ -1,12 +1,17 @@
 mod app;
+mod cullfile;
 mod image;
 
+use ::image::EncodableLayout;
+use ::image::RgbImage;
 use app::*;
+use eframe::{egui, epaint};
 
-use std::{env, fs, path::Path, process::exit};
+use std::ops::Deref;
+use std::{env, path::Path, process::exit};
 
-use ::image::ImageReader;
-use ::image::ImageDecoder;
+use crate::cullfile::Cullfile;
+use crate::image::load_images;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -27,37 +32,78 @@ fn main() {
         Err(e) => {
             println!("Path \"{path_argument}\" is not valid: {e}");
             exit(-2);
-        },
-    };   
-
-    // println!("Starting {executable_name} at {path:?}");
-
-    scan_directory(&path);
-
-}
-
-/// Given a path, return all the images in that path
-fn scan_directory(path: &Path) -> () {
-    if path.is_file() {
-        let mut image_decoder = ImageReader::open(path).expect("reeee").into_decoder().expect("yeeet");
-
-        let exif = image_decoder.exif_metadata().unwrap();
-
-        if let Some(bytes) = exif {
-            for byte in bytes {
-                print!("{}", byte as char);
-            }
         }
+    };
 
-        // println!("EXIF data:");
-        // println!("{:#?}", exif);
+    println!("{}", path.to_str().unwrap());
+
+    let images = match load_images(&path, false) {
+        Ok(images) => images,
+        Err(e) => {
+            println!("Error loading images: {:?}", e);
+            exit(-1);
+        }
+    };
+
+    for image in &images {
+        println!(
+            "Found image at {}",
+            image.path_relative_to_cullfile.to_str().unwrap()
+        );
     }
 
-    ()
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_app_id("cull tool"), //.with_inner_size([320.0, 240.0]),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "cull tool",
+        options,
+        Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
+
+            Ok(Box::new(MyApp::new(Cullfile::load(&path), images)))
+        }),
+    )
+    .unwrap();
+}
+
+#[derive(Debug)]
+struct ImageWrapper(pub RgbImage);
+
+impl epaint::ImageData for ImageWrapper {
+    fn size(&self) -> [usize; 2] {
+        [
+            self.0.dimensions().0 as usize,
+            self.0.dimensions().1 as usize,
+        ]
+    }
+
+    fn width(&self) -> usize {
+        self.size()[0]
+    }
+
+    fn height(&self) -> usize {
+        self.size()[1]
+    }
+
+    fn pixel_type(&self) -> epaint::image::PixelType {
+        epaint::image::PixelType::Rgb
+    }
+
+    fn data(&self) -> &[u8] {
+        &self.0.as_bytes()
+    }
+}
+
+impl Deref for ImageWrapper {
+    type Target = RgbImage;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 fn print_usage(name: &str) {
-    println!(
-        "Usage: {name} <path>"
-    );
+    println!("Usage: {name} <path>");
 }
