@@ -115,10 +115,6 @@ where
 }
 impl<T> Drop for TexBox<T> {
     fn drop(&mut self) {
-        println!(
-            "Calling drop on texbox. Remaining strong references to inner image: {}",
-            Arc::strong_count(&self.image)
-        );
         // If there's only one reference to the image remaining
         if Arc::strong_count(&self.image) == 1 {
             self.texture_manager.write().free(self.texture_id.clone());

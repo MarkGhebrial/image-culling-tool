@@ -2,37 +2,56 @@
 
 use std::sync::Arc;
 
-use eframe::egui::{self, Image, ImageData};
+use eframe::egui::{self, Image, Key, Vec2};
 
 use crate::{cullfile::Cullfile, image::ImageWithMetadata};
 
 pub struct MyApp {
     cullfile: Cullfile,
     images: Vec<ImageWithMetadata>,
+    selected_image_index: usize,
 }
 
 impl MyApp {
     pub fn new(cullfile: Cullfile, images: Vec<ImageWithMetadata>) -> Self {
-        Self { cullfile, images }
+        Self { cullfile, images, selected_image_index: 0 }
+    }
+
+    fn selected_image(&self) -> &ImageWithMetadata {
+        &self.images[self.selected_image_index]
     }
 }
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Cull tool");
+            ctx.input(|input| {
+                let go_next = input.key_pressed(Key::ArrowRight) || input.key_pressed(Key::ArrowDown);
+                let go_prev = input.key_pressed(Key::ArrowLeft) || input.key_pressed(Key::ArrowUp);
 
-            let image = &self.images[0].image;
+                match (go_next, go_prev) {
+                    (true, true) | (false, false) => (), // Do nothing if both or neither are pressed
+                    (true, false) => {
+                        self.selected_image_index = (self.selected_image_index + 1) % (self.images.len() - 1);
+                    },
+                    (false, true) => {
+                        if self.selected_image_index == 0 {
+                            self.selected_image_index = self.images.len() - 1;
+                        }
+                        else {
+                            self.selected_image_index -= 1;
+                        }
+                    },
+                }
+            });
 
-            println!("Image size: {:?}", image.get_image().size());
+            let image = &self.selected_image().image;
 
-            let im_widget = Image::new(image.get_sized_texture());
+            let im_widget = Image::new(image.get_sized_texture()).fit_to_fraction(Vec2::new(1.0, 1.0));
             println!("Widget size: {:?}", im_widget.size());
             ui.add(im_widget);
 
             ui.label("Below the image :)");
-
-            println!("{}", Arc::strong_count(&self.images[0].image.get_image()));
         });
     }
 
