@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use eframe::egui::{self, Image, ImageData, ImageSource};
+use eframe::egui::{self, Image, ImageData};
 
 use crate::{cullfile::Cullfile, image::ImageWithMetadata};
 
@@ -24,18 +24,15 @@ impl eframe::App for MyApp {
 
             let image = &self.images[0].image;
 
-            // ui.image("https://ghebrial.net/images/san-clemente-beach/41083013750-R1-065-31.jpg");
+            println!("Image size: {:?}", image.get_image().size());
 
-            println!("Image size: {:?}", image.size());
-            // image.size();
-
-            let im_widget = Image::from_image_data(self.images[0].image.clone());
+            let im_widget = Image::new(image.get_sized_texture());
             println!("Widget size: {:?}", im_widget.size());
             ui.add(im_widget);
 
             ui.label("Below the image :)");
 
-            println!("{}", Arc::strong_count(&self.images[0].image));
+            println!("{}", Arc::strong_count(&self.images[0].image.get_image()));
         });
     }
 
