@@ -1,14 +1,13 @@
 mod app;
 mod cullfile;
 mod image;
+mod image_wrapper;
 mod zoom_image_widget;
 
-use ::image::EncodableLayout;
-use ::image::RgbImage;
 use app::*;
-use eframe::{egui, epaint};
+use eframe::egui;
 
-use std::ops::Deref;use std::{env, path::Path, process::exit};
+use std::{env, path::Path, process::exit};
 
 use crate::cullfile::Cullfile;
 use crate::image::load_images;
@@ -68,42 +67,6 @@ fn main() {
         }),
     )
     .unwrap();
-}
-
-#[derive(Debug)]
-struct ImageWrapper(pub RgbImage);
-
-impl epaint::ImageData for ImageWrapper {
-    fn size(&self) -> [usize; 2] {
-        [
-            self.0.dimensions().0 as usize,
-            self.0.dimensions().1 as usize,
-        ]
-    }
-
-    fn width(&self) -> usize {
-        self.size()[0]
-    }
-
-    fn height(&self) -> usize {
-        self.size()[1]
-    }
-
-    fn pixel_type(&self) -> epaint::image::PixelType {
-        epaint::image::PixelType::Rgb
-    }
-
-    fn data(&self) -> &[u8] {
-        &self.0.as_bytes()
-    }
-}
-
-impl Deref for ImageWrapper {
-    type Target = RgbImage;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
 }
 
 fn print_usage(name: &str) {

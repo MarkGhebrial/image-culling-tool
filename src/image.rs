@@ -6,7 +6,7 @@ use std::{fs, path::PathBuf};
 use image::ImageReader;
 use rayon::prelude::*;
 
-use crate::ImageWrapper;
+use crate::image_wrapper::ImageWrapper;
 
 pub struct ImageWithMetadata {
     /// The name of the file this image is stored in. Maybe I can instead store
@@ -57,6 +57,6 @@ pub fn load_images(
             })
         })
         .collect();
-    
+
     Ok(images)
 }
