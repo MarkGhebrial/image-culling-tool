@@ -906,7 +906,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 [[package]]
 name = "ecolor"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "bytemuck",
  "emath",
@@ -915,7 +915,7 @@ dependencies = [
 [[package]]
 name = "eframe"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -950,7 +950,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "accesskit",
  "ahash",
@@ -967,7 +967,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -986,7 +986,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "accesskit_winit",
  "ahash",
@@ -1003,22 +1003,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui_extras"
-version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
-dependencies = [
- "ahash",
- "egui",
- "enum-map",
- "log",
- "mime_guess2",
- "profiling",
-]
-
-[[package]]
 name = "egui_glow"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1041,7 +1028,7 @@ checksum = "91622ff5e7162018101f2fea40d6ebf4a78bbe5a49736a2020649edf9693679e"
 [[package]]
 name = "emath"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "bytemuck",
 ]
@@ -1057,26 +1044,6 @@ name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
-
-[[package]]
-name = "enum-map"
-version = "2.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6866f3bfdf8207509a033af1a75a7b08abda06bbaaeae6669323fd5a097df2e9"
-dependencies = [
- "enum-map-derive",
-]
-
-[[package]]
-name = "enum-map-derive"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f282cfdfe92516eb26c2af8589c274c7c17681f5ecc03c18255fe741c6aa64eb"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "enumflags2"
@@ -1102,7 +1069,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -1119,7 +1086,7 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.32.0"
-source = "git+https://github.com/MarkGhebrial/egui?branch=opencv#1ca5f312e1799683be6694a4fd79430177194de3"
+source = "git+https://github.com/MarkGhebrial/egui?branch=clean#33e3faf100eb93f2b899ccee23ee833fecbb5621"
 
 [[package]]
 name = "equator"
@@ -1662,7 +1629,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "eframe",
- "egui_extras",
  "image",
  "indicatif",
  "rayon",
@@ -1942,24 +1908,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "mime"
-version = "0.3.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
-
-[[package]]
-name = "mime_guess2"
-version = "2.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1706dc14a2e140dec0a7a07109d9a3d5890b81e85bd6c60b906b249a77adf0ca"
-dependencies = [
- "mime",
- "phf",
- "phf_shared",
- "unicase",
 ]
 
 [[package]]
@@ -2499,50 +2447,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
-name = "phf"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fd6780a80ae0c52cc120a26a1a42c1ae51b247a253e4e06113d23d2c2edd078"
-dependencies = [
- "phf_macros",
- "phf_shared",
-]
-
-[[package]]
-name = "phf_generator"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c80231409c20246a13fddb31776fb942c38553c51e871f8cbd687a4cfb5843d"
-dependencies = [
- "phf_shared",
- "rand 0.8.6",
-]
-
-[[package]]
-name = "phf_macros"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f84ac04429c13a7ff43785d75ad27569f2951ce0ffd30a3321230db2fc727216"
-dependencies = [
- "phf_generator",
- "phf_shared",
- "proc-macro2",
- "quote",
- "syn",
- "unicase",
-]
-
-[[package]]
-name = "phf_shared"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67eabc2ef2a60eb7faa00097bd1ffdb5bd28e62bf39990626a582201b7a754e5"
-dependencies = [
- "siphasher",
- "unicase",
-]
-
-[[package]]
 name = "pin-project"
 version = "1.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2727,21 +2631,12 @@ checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
 name = "rand"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ca0ecfa931c29007047d1bc58e623ab12e5590e8c7cc53200d5202b69266d8a"
-dependencies = [
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c5af06bb1b7d3216d91932aed5265164bf384dc89cd6ba05cf59a35f5f76ea"
 dependencies = [
  "rand_chacha",
- "rand_core 0.9.5",
+ "rand_core",
 ]
 
 [[package]]
@@ -2751,14 +2646,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.9.5",
+ "rand_core",
 ]
-
-[[package]]
-name = "rand_core"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
 name = "rand_core"
@@ -2796,7 +2685,7 @@ dependencies = [
  "num-traits",
  "paste",
  "profiling",
- "rand 0.9.4",
+ "rand",
  "rand_chacha",
  "simd_helpers",
  "thiserror 2.0.18",
@@ -3064,12 +2953,6 @@ name = "simdutf8"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
-
-[[package]]
-name = "siphasher"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ee5873ec9cce0195efcb7a4e9507a04cd49aec9c83d0389df45b1ef7ba2e649"
 
 [[package]]
 name = "slab"
@@ -3424,12 +3307,6 @@ dependencies = [
  "tempfile",
  "windows-sys 0.61.2",
 ]
-
-[[package]]
-name = "unicase"
-version = "2.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbc4bc3a9f746d862c45cb89d705aa10f187bb96c76001afab07a0d35ce60142"
 
 [[package]]
 name = "unicode-ident"

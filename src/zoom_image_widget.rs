@@ -40,7 +40,7 @@ impl ZoomImage {
     pub fn set_image(&mut self, image: Arc<impl ImageData>, ctx: &egui::Context) {
         // self.texture = texture;
         ctx.tex_manager().write().set(
-            self.texture_id.clone(),
+            self.texture_id,
             ImageDelta::full(image.clone(), TextureOptions::default()),
         );
         self.image = image;
@@ -138,7 +138,7 @@ impl Widget for &mut ZoomImage {
         }
 
         if ui.is_rect_visible(rect) {
-            let mut mesh = Mesh::with_texture(self.texture_id.clone());
+            let mut mesh = Mesh::with_texture(self.texture_id);
             mesh.add_rect_with_uv(
                 image_rect, //rect,
                 Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(1.0, 1.0)),

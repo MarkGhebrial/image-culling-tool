@@ -85,7 +85,7 @@ impl Cullfile {
     pub fn get_rating(&self, image_file_name: &str) -> Rating {
         self.ratings
             .get(image_file_name)
-            .map(|r| r.clone())
+            .map(|r| *r)
             .unwrap_or(Rating::Unrated)
     }
 }
