@@ -1,10 +1,17 @@
+use std::sync::Arc;
+
 use eframe::{
-    egui::{Color32, ImageSource, Mesh, Pos2, Rect, Sense, Vec2, Widget, load::SizedTexture},
-    epaint::RectShape,
+    egui::{
+        self, Color32, ImageData, Mesh, Pos2, Rect, Sense, TextureId, TextureOptions, Vec2, Widget,
+        load::SizedTexture,
+    },
+    epaint::ImageDelta,
 };
 
 pub struct ZoomImage {
-    texture: SizedTexture,
+    texture_id: TextureId,
+    // The width and height of the image in pixels
+    image: Arc<dyn ImageData>,
 
     /// The point in the image to zoom in to. From (0.0, 0.0) to (1.0, 1.0)
     zoom_translation: Vec2,
@@ -15,16 +22,28 @@ pub struct ZoomImage {
 }
 
 impl ZoomImage {
-    pub fn new<'a>(texture: SizedTexture) -> Self {
+    pub fn new(image: Arc<impl ImageData>, ctx: &egui::Context) -> Self {
+        let texture_id = ctx.tex_manager().write().alloc(
+            "zoom image".to_owned(),
+            image.clone(),
+            TextureOptions::default(),
+        );
+
         Self {
-            texture,
+            texture_id,
+            image,
             zoom_translation: Vec2::new(0.0, 0.0),
             zoom_scale: 1.0,
         }
     }
 
-    pub fn set_texture(&mut self, texture: SizedTexture) {
-        self.texture = texture;
+    pub fn set_image(&mut self, image: Arc<impl ImageData>, ctx: &egui::Context) {
+        // self.texture = texture;
+        ctx.tex_manager().write().set(
+            self.texture_id.clone(),
+            ImageDelta::full(image.clone(), TextureOptions::default()),
+        );
+        self.image = image;
     }
 }
 
@@ -39,7 +58,7 @@ impl Widget for &mut ZoomImage {
         // Larger aspect ratio -> wider, shorter
         // Smaller aspect ratio -> taller, skinnier
         let rect_aspect_ratio = rect.aspect_ratio();
-        let img_aspect_ratio = self.texture.size.x / self.texture.size.y;
+        let img_aspect_ratio = self.image.size()[0] as f32 / self.image.size()[1] as f32;
 
         // If the widget rect is wider than the image's rect, their heights should be the same
         let mut image_rect = if rect_aspect_ratio >= img_aspect_ratio {
@@ -119,7 +138,7 @@ impl Widget for &mut ZoomImage {
         }
 
         if ui.is_rect_visible(rect) {
-            let mut mesh = Mesh::with_texture(self.texture.id.clone());
+            let mut mesh = Mesh::with_texture(self.texture_id.clone());
             mesh.add_rect_with_uv(
                 image_rect, //rect,
                 Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(1.0, 1.0)),

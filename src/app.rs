@@ -1,8 +1,6 @@
 //! Contains all the GUI code
 
-use std::sync::Arc;
-
-use eframe::egui::{self, Image, Key, Sense, Vec2};
+use eframe::egui::{self, Key};
 
 use crate::{cullfile::Cullfile, image::ImageWithMetadata, zoom_image_widget::ZoomImage};
 
@@ -15,8 +13,8 @@ pub struct MyApp {
 }
 
 impl MyApp {
-    pub fn new(cullfile: Cullfile, images: Vec<ImageWithMetadata>) -> Self {
-        let image_zoom_widget = ZoomImage::new(images[0].image.get_sized_texture());
+    pub fn new(cullfile: Cullfile, images: Vec<ImageWithMetadata>, ctx: &egui::Context) -> Self {
+        let image_zoom_widget = ZoomImage::new(images[0].image.clone(), ctx);
 
         Self {
             cullfile,
@@ -45,7 +43,21 @@ impl eframe::App for MyApp {
                     ui.label(format!(
                         "File name: {}",
                         self.selected_image()
-                            .path_relative_to_cullfile.file_name().unwrap().to_str().unwrap()
+                            .path_relative_to_cullfile
+                            .file_name()
+                            .unwrap()
+                            .to_str()
+                            .unwrap()
+                    ));
+
+                    ui.label(format!(
+                        "Rating: {}",
+                        self.cullfile.get_rating(
+                            self.selected_image()
+                                .path_relative_to_cullfile
+                                .to_str()
+                                .unwrap()
+                        )
                     ));
                 });
             });
@@ -72,9 +84,8 @@ impl eframe::App for MyApp {
                 }
             });
 
-            let image = &self.selected_image().image;
-            self.image_zoom_widget
-                .set_texture(image.get_sized_texture());
+            let image = self.selected_image().image.clone();
+            self.image_zoom_widget.set_image(image, ctx);
             ui.add(&mut self.image_zoom_widget);
 
             // let mut rect  = ui.allocate_exact_size(ui.available_size(), Sense::empty()).0;

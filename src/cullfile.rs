@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, fmt::Display, path::Path};
 
 #[repr(usize)]
 #[derive(Clone, Copy)]
@@ -21,6 +21,19 @@ impl Rating {
             4 => Some(Self::Four),
             5 => Some(Self::Five),
             _ => None,
+        }
+    }
+}
+
+impl Display for Rating {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Rating::Unrated => "unrated".fmt(f),
+            Rating::One => "one star".fmt(f),
+            Rating::Two => "two stars".fmt(f),
+            Rating::Three => "three stars".fmt(f),
+            Rating::Four => "four stars".fmt(f),
+            Rating::Five => "five stars".fmt(f),
         }
     }
 }

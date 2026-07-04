@@ -1,22 +1,14 @@
 mod app;
 mod cullfile;
 mod image;
-mod texbox;
 mod zoom_image_widget;
 
 use ::image::EncodableLayout;
 use ::image::RgbImage;
 use app::*;
-use eframe::egui::ImageData;
-use eframe::egui::TextureId;
-use eframe::egui::TextureOptions;
-use eframe::egui::load::SizedTexture;
-use eframe::epaint::TextureManager;
 use eframe::{egui, epaint};
 
-use std::ops::Deref;
-use std::sync::Arc;
-use std::{env, path::Path, process::exit};
+use std::ops::Deref;use std::{env, path::Path, process::exit};
 
 use crate::cullfile::Cullfile;
 use crate::image::load_images;
@@ -71,7 +63,11 @@ fn main() {
                 );
             }
 
-            Ok(Box::new(MyApp::new(Cullfile::load(&path), images)))
+            Ok(Box::new(MyApp::new(
+                Cullfile::load(&path),
+                images,
+                &cc.egui_ctx,
+            )))
         }),
     )
     .unwrap();

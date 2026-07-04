@@ -8,7 +8,7 @@ use eframe::epaint::TextureManager;
 use image::ImageReader;
 use indicatif::ProgressIterator;
 
-use crate::{ImageWrapper, texbox::TexBox};
+use crate::ImageWrapper;
 
 pub struct ImageWithMetadata {
     /// The name of the file this image is stored in. Maybe I can instead store
@@ -18,7 +18,7 @@ pub struct ImageWithMetadata {
 
     pub date_captured: time::SystemTime,
 
-    pub image: TexBox<ImageWrapper>,
+    pub image: Arc<ImageWrapper>,
 }
 
 /// Given a path, return all the images in that path
@@ -54,10 +54,7 @@ pub fn load_images(
             images.push(ImageWithMetadata {
                 path_relative_to_cullfile: entry.path().to_owned(),
                 date_captured: entry.metadata()?.created()?,
-                image: TexBox::new(
-                    Arc::new(ImageWrapper(image.to_rgb8())),
-                    texture_manager.clone(),
-                ),
+                image: Arc::new(ImageWrapper(image.to_rgb8())),
             });
         }
     }
