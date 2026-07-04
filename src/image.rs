@@ -3,10 +3,8 @@ use std::sync::Arc;
 use std::time;
 use std::{fs, path::PathBuf};
 
-use eframe::egui;
-use eframe::epaint::TextureManager;
 use image::ImageReader;
-use indicatif::ProgressIterator;
+use rayon::prelude::*;
 
 use crate::ImageWrapper;
 
@@ -25,39 +23,40 @@ pub struct ImageWithMetadata {
 pub fn load_images(
     base_path: &Path,
     recursive: bool,
-    texture_manager: Arc<egui::mutex::RwLock<TextureManager>>,
 ) -> Result<Vec<ImageWithMetadata>, std::io::Error> {
     if recursive {
         unimplemented!()
     }
 
-    let mut images = Vec::new();
-
-    // let pb = indicatif::ProgressBar::new(3000);
-
     // For each item in the directory
     let dir: Vec<Result<std::fs::DirEntry, std::io::Error>> = fs::read_dir(base_path)?.collect();
-    for entry in dir.into_iter().progress() {
-        let entry: std::fs::DirEntry = entry?;
-        // If the item is a file
-        if entry.path().is_file() {
-            // Try to load the file as an image
-            let image = match ImageReader::open(entry.path())?.decode() {
-                Ok(image) => image,
-                // If the file isn't an image, ignore it
+
+    let progress_bar = indicatif::ProgressBar::new(dir.len() as u64);
+
+    let images: Vec<ImageWithMetadata> = dir
+        .into_par_iter()
+        .filter(|_| {
+            progress_bar.inc(1);
+            true
+        })
+        .map(|entry_result| entry_result.unwrap())
+        .filter(|entry| entry.path().is_file())
+        .filter_map(|file| {
+            let image = match ImageReader::open(file.path()).unwrap().decode() {
+                Ok(image) => Some(image),
                 Err(e) => match e {
-                    image::ImageError::IoError(error) => return Err(error),
-                    _ => continue, // Ignore "decoding", "encoding", "parameter", "limits", and "unsupported" errors
-                },
-            };
+                    image::ImageError::IoError(error) => Err(error).unwrap(),
+                    _ => None
+                }
+            }?;
 
-            images.push(ImageWithMetadata {
-                path_relative_to_cullfile: entry.path().to_owned(),
-                date_captured: entry.metadata()?.created()?,
+            Some(ImageWithMetadata {
+                path_relative_to_cullfile: file.path(),
+                date_captured: file.metadata().unwrap().created().unwrap(),
                 image: Arc::new(ImageWrapper(image.to_rgb8())),
-            });
-        }
-    }
-
+            })
+        })
+        .collect();
+    
     Ok(images)
 }

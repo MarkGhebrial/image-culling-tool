@@ -37,6 +37,21 @@ fn main() {
 
     println!("{}", path.to_str().unwrap());
 
+    let images = match load_images(&path, false) {
+        Ok(images) => images,
+        Err(e) => {
+            println!("Error loading images: {:?}", e);
+            exit(-1);
+        }
+    };
+
+    for image in &images {
+        println!(
+            "Found image at {}",
+            image.path_relative_to_cullfile.to_str().unwrap()
+        );
+    }
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_app_id("cull tool"), //.with_inner_size([320.0, 240.0]),
         ..Default::default()
@@ -45,24 +60,6 @@ fn main() {
         "cull tool",
         options,
         Box::new(|cc| {
-            egui_extras::install_image_loaders(&cc.egui_ctx);
-            let texture_manager = cc.egui_ctx.tex_manager();
-
-            let images = match load_images(&path, false, texture_manager.clone()) {
-                Ok(images) => images,
-                Err(e) => {
-                    println!("Error loading images: {:?}", e);
-                    exit(-1);
-                }
-            };
-
-            for image in &images {
-                println!(
-                    "Found image at {}",
-                    image.path_relative_to_cullfile.to_str().unwrap()
-                );
-            }
-
             Ok(Box::new(MyApp::new(
                 Cullfile::load(&path),
                 images,
