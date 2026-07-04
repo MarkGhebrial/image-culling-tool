@@ -8,7 +8,7 @@ use eframe::epaint::TextureManager;
 use image::ImageReader;
 use indicatif::ProgressIterator;
 
-use crate::{ImageWrapper, TexBox};
+use crate::{ImageWrapper, texbox::TexBox};
 
 pub struct ImageWithMetadata {
     /// The name of the file this image is stored in. Maybe I can instead store
