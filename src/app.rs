@@ -14,7 +14,7 @@ pub struct MyApp {
 
 impl MyApp {
     pub fn new(cullfile: Cullfile, images: Vec<ImageWithMetadata>, ctx: &egui::Context) -> Self {
-        let image_zoom_widget = ZoomImage::new(images[0].image.clone(), ctx);
+        let image_zoom_widget = ZoomImage::new(images[0].image_thumb.clone(), ctx);
 
         Self {
             cullfile,
@@ -84,7 +84,7 @@ impl eframe::App for MyApp {
                 }
             });
 
-            let image = self.selected_image().image.clone();
+            let image = self.selected_image().image_thumb.clone();
             self.image_zoom_widget.set_image(image, ctx);
             ui.add(&mut self.image_zoom_widget);
 

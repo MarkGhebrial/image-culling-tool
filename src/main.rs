@@ -1,4 +1,5 @@
 mod app;
+mod async_runtime;
 mod cullfile;
 mod image;
 mod image_wrapper;
@@ -36,7 +37,7 @@ fn main() {
 
     println!("{}", path.to_str().unwrap());
 
-    let images = match load_images(&path, false) {
+    let images = match load_images(&path, false, 1000) {
         Ok(images) => images,
         Err(e) => {
             println!("Error loading images: {:?}", e);

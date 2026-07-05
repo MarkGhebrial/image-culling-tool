@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::pin::{Pin, pin};
 use std::sync::Arc;
 use std::time;
 use std::{fs, path::PathBuf};
@@ -16,13 +17,16 @@ pub struct ImageWithMetadata {
 
     pub date_captured: time::SystemTime,
 
-    pub image: Arc<ImageWrapper>,
+    pub image_thumb: Arc<ImageWrapper>,
 }
 
 /// Given a path, return all the images in that path
 pub fn load_images(
     base_path: &Path,
     recursive: bool,
+    // The size of the image thumbnails to generate, in pixels. For images that are
+    // not square, this specifies the length of their long edge
+    thumb_size: u32,
 ) -> Result<Vec<ImageWithMetadata>, std::io::Error> {
     if recursive {
         unimplemented!()
@@ -46,14 +50,14 @@ pub fn load_images(
                 Ok(image) => Some(image),
                 Err(e) => match e {
                     image::ImageError::IoError(error) => Err(error).unwrap(),
-                    _ => None
-                }
+                    _ => None,
+                },
             }?;
 
             Some(ImageWithMetadata {
                 path_relative_to_cullfile: file.path(),
                 date_captured: file.metadata().unwrap().created().unwrap(),
-                image: Arc::new(ImageWrapper(image.to_rgb8())),
+                image_thumb: Arc::new(ImageWrapper(image.thumbnail(thumb_size, thumb_size).to_rgb8())),
             })
         })
         .collect();

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use eframe::{
     egui::{
         self, Color32, ImageData, Mesh, Pos2, Rect, Sense, TextureId, TextureOptions, Vec2, Widget,
-        load::SizedTexture,
     },
     epaint::ImageDelta,
 };
@@ -38,7 +37,6 @@ impl ZoomImage {
     }
 
     pub fn set_image(&mut self, image: Arc<impl ImageData>, ctx: &egui::Context) {
-        // self.texture = texture;
         ctx.tex_manager().write().set(
             self.texture_id,
             ImageDelta::full(image.clone(), TextureOptions::default()),

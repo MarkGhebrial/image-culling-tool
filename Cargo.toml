@@ -9,3 +9,4 @@ eframe = { git = "https://github.com/MarkGhebrial/egui", branch = "clean" }
 chrono = "0.4.43"
 indicatif = "0.18.4"
 rayon = "1.12.0"
+lru = "0.18.0"
