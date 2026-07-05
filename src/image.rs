@@ -1,3 +1,4 @@
+use std::ops::{Deref, Range};
 use std::path::Path;
 use std::sync::Arc;
 use std::time;
@@ -7,6 +8,8 @@ use image::ImageReader;
 use image::{DynamicImage, ImageDecoder, ImageError};
 use rayon::prelude::*;
 
+use crate::async_runtime::AsyncLruCache;
+use crate::cullfile::{Cullfile, Rating};
 use crate::image_wrapper::ImageWrapper;
 
 pub struct ImageWithMetadata {
@@ -18,47 +21,95 @@ pub struct ImageWithMetadata {
     pub date_captured: time::SystemTime,
 
     pub image_thumb: Arc<ImageWrapper>,
+
+    pub rating: Rating,
 }
 
-/// Given a path, return all the images in that path
-pub fn load_images(
-    base_path: &Path,
-    recursive: bool,
-    // The size of the image thumbnails to generate, in pixels. For images that are
-    // not square, this specifies the length of their long edge
-    thumb_size: u32,
-) -> Result<Vec<ImageWithMetadata>, std::io::Error> {
-    if recursive {
-        unimplemented!()
+pub struct ImageCollection {
+    images: Vec<ImageWithMetadata>,
+    pub cache: AsyncLruCache<ImageLoader>,
+}
+
+// impl Index<usize> for ImageCollection {
+//     type Output = ImageWithMetadata;
+
+//     fn index(&self, index: usize) -> &Self::Output {
+//         &self.images[index]
+//     }
+// }
+
+impl Deref for ImageCollection {
+    type Target = Vec<ImageWithMetadata>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.images
+    }
+}
+
+impl ImageCollection {
+    /// Given a path, return all the images in that path
+    pub fn load_images(
+        base_path: &Path,
+        recursive: bool,
+        // The size of the image thumbnails to generate, in pixels. For images that are
+        // not square, this specifies the length of their long edge
+        thumb_size: u32,
+    ) -> Result<Self, std::io::Error> {
+        if recursive {
+            unimplemented!()
+        }
+
+        // For each item in the directory
+        let dir: Vec<Result<std::fs::DirEntry, std::io::Error>> =
+            fs::read_dir(base_path)?.collect();
+
+        let cullfile = Cullfile::load(base_path);
+
+        let progress_bar = indicatif::ProgressBar::new(dir.len() as u64);
+
+        let images: Vec<ImageWithMetadata> = dir
+            .into_par_iter()
+            .filter(|_| {
+                progress_bar.inc(1);
+                true
+            })
+            .map(|entry_result| entry_result.unwrap())
+            .filter(|entry| entry.path().is_file())
+            .filter_map(|file| {
+                Some(ImageWithMetadata {
+                    path_relative_to_cullfile: file.path(),
+                    date_captured: file.metadata().unwrap().created().unwrap(),
+                    image_thumb: match load_image_from_file(file.path(), thumb_size) {
+                        Ok(image) => image,
+                        Err(ImageError::IoError(_e)) => return None, // TODO: Throw an error here
+                        _ => return None,
+                    },
+                    rating: cullfile.get_rating(file.path()),
+                })
+            })
+            .collect();
+
+        // TODO: Sort the images by capture time
+
+        Ok(Self {
+            images,
+            cache: AsyncLruCache::new(10.try_into().unwrap()),
+        })
     }
 
-    // For each item in the directory
-    let dir: Vec<Result<std::fs::DirEntry, std::io::Error>> = fs::read_dir(base_path)?.collect();
+    /// Load the specified full resolution image from the cache, falling back to the low resolution
+    /// thumbnail on cache misses.
+    pub fn get_full_resolution_image(&mut self, index: usize) -> Arc<ImageWrapper> {
+        let image_path = self.images[index].path_relative_to_cullfile.clone();
+        self.cache
+            .load(image_path)
+            .unwrap_or_else(|| self.images[index].image_thumb.clone())
+    }
 
-    let progress_bar = indicatif::ProgressBar::new(dir.len() as u64);
-
-    let images: Vec<ImageWithMetadata> = dir
-        .into_par_iter()
-        .filter(|_| {
-            progress_bar.inc(1);
-            true
-        })
-        .map(|entry_result| entry_result.unwrap())
-        .filter(|entry| entry.path().is_file())
-        .filter_map(|file| {
-            Some(ImageWithMetadata {
-                path_relative_to_cullfile: file.path(),
-                date_captured: file.metadata().unwrap().created().unwrap(),
-                image_thumb: match load_image_from_file(file.path(), thumb_size) {
-                    Ok(image) => image,
-                    Err(ImageError::IoError(e)) => return None, // TODO: Throw an error here
-                    _ => return None,
-                },
-            })
-        })
-        .collect();
-
-    Ok(images)
+    // / Start loading the given range of indexes.
+    // pub fn preload(&mut self, range: Range<usize>) {
+    //     self.cache.
+    // }
 }
 
 /// Load an image from the given file path. If `thumb_size != 0`, then create a lower

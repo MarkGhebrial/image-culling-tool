@@ -11,7 +11,7 @@ use eframe::egui;
 use std::{env, path::Path, process::exit};
 
 use crate::cullfile::Cullfile;
-use crate::image::load_images;
+use crate::image::ImageCollection;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -37,7 +37,7 @@ fn main() {
 
     println!("{}", path.to_str().unwrap());
 
-    let images = match load_images(&path, false, 600) {
+    let images = match ImageCollection::load_images(&path, false, 600) {
         Ok(images) => images,
         Err(e) => {
             println!("Error loading images: {:?}", e);
@@ -45,7 +45,7 @@ fn main() {
         }
     };
 
-    for image in &images {
+    for image in images.iter() {
         println!(
             "Found image at {}",
             image.path_relative_to_cullfile.to_str().unwrap()

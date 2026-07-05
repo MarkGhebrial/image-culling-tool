@@ -24,6 +24,14 @@ where
     /// The future is done being executed (the last call to `.poll()` returned `Poll::Ready`)
     Done(Fut::Output),
 }
+impl<Fut> FutureStatus<Fut>
+where
+    Fut: Future,
+{
+    fn is_done(&self) -> bool {
+        matches!(self, FutureStatus::Done(_))
+    }
+}
 
 struct ThreadWaker(Thread);
 impl Wake for ThreadWaker {
@@ -108,10 +116,7 @@ where
 
     /// Get an item from the cache. If the item isn't in the cache, or the cache isn't
     /// done loading the item, return None.
-    pub fn load<'a>(&'a mut self, key: L::Key) -> Option<L::Value>
-    where
-        L::Key: 'a,
-    {
+    pub fn load(&mut self, key: L::Key) -> Option<L::Value> {
         // Lock the mutex guarding the cache
         let cache = &mut self.cache.lock().unwrap();
 
@@ -134,6 +139,16 @@ where
                 None
             }
         }
+    }
+
+    /// Is the given key hot in the cache? Returns false if the key is not in the cache or its value
+    /// is still pending.
+    pub fn is_loaded(&self, key: &L::Key) -> bool {
+        self.cache
+            .lock()
+            .unwrap()
+            .peek(key)
+            .is_some_and(|future_status| future_status.is_done())
     }
 }
 
