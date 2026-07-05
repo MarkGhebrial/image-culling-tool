@@ -5,15 +5,36 @@ use std::{path::PathBuf, sync::Arc};
 use eframe::egui::{self, Key};
 
 use crate::{
-    async_runtime::AsyncLruCache, cullfile::Cullfile, image::ImageWithMetadata,
-    image_wrapper::ImageWrapper, zoom_image_widget::ZoomImage,
+    async_runtime::{AsyncLruCache, AsyncLruCacheLoader},
+    cullfile::Cullfile,
+    image::ImageWithMetadata,
+    image_wrapper::ImageWrapper,
+    zoom_image_widget::ZoomImage,
 };
+
+struct ImageLoader;
+impl AsyncLruCacheLoader for ImageLoader {
+    type Key = PathBuf;
+    type Value = Arc<ImageWrapper>;
+
+    async fn load(key: Self::Key) -> Self::Value {
+        println!("This is executing");
+
+        let file = async_fs::File::open(key).await.unwrap();
+
+        println!("This is also executing asynchronously!");
+
+        // image::ImageReader::new(file);
+
+        return Arc::new(ImageWrapper(image::RgbImage::new(10, 10)));
+    }
+}
 
 pub struct MyApp {
     cullfile: Cullfile,
 
     images: Vec<ImageWithMetadata>,
-    image_cache: AsyncLruCache<PathBuf, Arc<ImageWrapper>>,
+    image_cache: AsyncLruCache<ImageLoader>,
     selected_image_index: usize,
     image_zoom_widget: ZoomImage,
 }
@@ -22,22 +43,10 @@ impl MyApp {
     pub fn new(cullfile: Cullfile, images: Vec<ImageWithMetadata>, ctx: &egui::Context) -> Self {
         let image_zoom_widget = ZoomImage::new(images[0].image_thumb.clone(), ctx);
 
-        let image_cache = AsyncLruCache::new(10.try_into().unwrap(), async |path: PathBuf| {
-            println!("This is executing");
-
-            let file = async_fs::File::open(path).await.unwrap();
-
-            println!("This is also executing asynchronously!");
-
-            // image::ImageReader::new(file);
-
-            return Arc::new(ImageWrapper(image::RgbImage::new(10, 10)));
-        });
-
         Self {
             cullfile,
             images,
-            image_cache,
+            image_cache: AsyncLruCache::new(10.try_into().unwrap()),
             selected_image_index: 0,
             image_zoom_widget,
         }
