@@ -19,6 +19,7 @@ enum FutureStatus<Fut>
 where
     Fut: Future,
 {
+    /// The future is still pending (i.e. the last call to `.poll()` returned `Poll::Pending`)
     Pending(Fut),
     /// The future is done being executed (the last call to `.poll()` returned `Poll::Ready`)
     Done(Fut::Output),
@@ -57,9 +58,6 @@ where
     // waker: Arc<ThreadWaker<()>>,
     thread_handle: JoinHandle<()>,
 }
-
-// type Fut<V> = Future<Output = V>;
-// type C<K, V> = Fn(K)
 
 impl<L> AsyncLruCache<L>
 where
@@ -139,51 +137,4 @@ where
     }
 }
 
-#[test]
-fn test_async_lru_cache() {
-    struct Loader;
-    impl AsyncLruCacheLoader for Loader {
-        type Key = String;
-        type Value = f64;
-
-        async fn load(key: Self::Key) -> Self::Value {
-            foo().await;
-
-            if key.starts_with("0") { 42.0 } else { 0.0 }
-        }
-    }
-
-    let mut cache: AsyncLruCache<Loader> = AsyncLruCache::new(NonZeroUsize::new(2).unwrap());
-
-    cache.load("0banana".into());
-}
-
-// struct MyWaker;
-// impl std::task::Wake for MyWaker {
-//     fn wake(self: Arc<Self>) {
-//         println!("I'm being awoken!")
-//     }
-// }
-
-async fn foo() -> bool {
-    true
-}
-
-async fn bar(n: usize) -> bool {
-    if foo().await { n % 2 == 0 } else { false }
-}
-
-// fn block_on_future<T, R>(mut future: Pin<&mut T>) -> R
-// where
-//     T: Future<Output = R>,
-// {
-//     loop {
-//         let poll_result = future.as_mut().poll(&mut std::task::Context::from_waker(
-//             &Arc::new(MyWaker).into(),
-//         ));
-//         match poll_result {
-//             std::task::Poll::Ready(output) => return output,
-//             std::task::Poll::Pending => { /* Do nothing, keep polling */ }
-//         }
-//     }
-// }
+// TODO: Add tests
