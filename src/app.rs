@@ -1,34 +1,16 @@
 //! Contains all the GUI code
 
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use eframe::egui::{self, Key};
 
 use crate::{
-    async_runtime::{AsyncLruCache, AsyncLruCacheLoader},
+    async_runtime::AsyncLruCache,
     cullfile::Cullfile,
-    image::ImageWithMetadata,
+    image::{ImageLoader, ImageWithMetadata},
     image_wrapper::ImageWrapper,
     zoom_image_widget::ZoomImage,
 };
-
-struct ImageLoader;
-impl AsyncLruCacheLoader for ImageLoader {
-    type Key = PathBuf;
-    type Value = Arc<ImageWrapper>;
-
-    async fn load(key: Self::Key) -> Self::Value {
-        println!("This is executing");
-
-        let file = async_fs::File::open(key).await.unwrap();
-
-        println!("This is also executing asynchronously!");
-
-        // image::ImageReader::new(file);
-
-        return Arc::new(ImageWrapper(image::RgbImage::new(10, 10)));
-    }
-}
 
 pub struct MyApp {
     cullfile: Cullfile,
