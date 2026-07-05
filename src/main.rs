@@ -37,7 +37,7 @@ fn main() {
 
     println!("{}", path.to_str().unwrap());
 
-    let images = match load_images(&path, false, 1000) {
+    let images = match load_images(&path, false, 600) {
         Ok(images) => images,
         Err(e) => {
             println!("Error loading images: {:?}", e);
