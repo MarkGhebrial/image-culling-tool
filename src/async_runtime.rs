@@ -1,19 +1,16 @@
 use std::{
-    future,
     hash::Hash,
     num::NonZeroUsize,
-    pin::{Pin, pin},
+    pin::Pin,
     sync::{Arc, Mutex},
     task::Wake,
     thread::{self, JoinHandle, Thread},
-    time::Duration,
 };
-
 use lru::LruCache;
 
-enum FutureStatus<Fut, O>
+enum FutureStatus<Fut>
 where
-    Fut: Future<Output = O>,
+    Fut: Future,
 {
     // Pending(Pin<Box<dyn Future<Output = R> + Send>>),
     Pending(Fut),
@@ -24,10 +21,7 @@ where
 struct ThreadWaker(Thread);
 impl Wake for ThreadWaker {
     fn wake(self: Arc<Self>) {
-        // Resume the thread
-        // if let Some(handle) = self.0 {
         self.0.unpark();
-        // }
     }
 }
 
@@ -38,19 +32,28 @@ impl Wake for ThreadWaker {
 /// - `V`: The value of the LRU cache
 /// - `C`: The async closure that's used to load items into the cache
 /// - `Fut`: The type of the future returned by `C`
-pub struct AsyncLruCache<K, V, C, Fut>
-where
-    Fut: Future<Output = V>,
-{
-    cache: Arc<Mutex<LruCache<K, FutureStatus<Pin<Box<Fut>>, V>>>>,
-
+pub struct AsyncLruCache<K, V, C> {
+    /// Wow, that's quite the type. Let me break it down for you:
+    /// - The combination of `Arc` and `Mutex` allows us to sync and modify the `LruCache` between threads.
+    ///   We need this because the worker thread accesses and updates the `LruCache` at the same time the
+    ///   user might be accessing the cache via `.load()`.
+    /// - `LruCache` is the underlying data structure behind this struct. It's key type is a generic
+    ///   parameter (`K`), and its value type is a `FutureStatus` that either contains a pending future
+    ///   or the result of the future.
+    /// - `Pin<Box<dyn Future<Output = V> + Send>>` is just the boilerplate for the type that means "a
+    ///   future that's heap allocated, safe to send between threads, and returns something of type V".
+    ///   It's what we poll to load items into the cache.
+    cache: Arc<Mutex<LruCache<K, FutureStatus<Pin<Box<dyn Future<Output = V> + Send>>>>>>,
     // waker: Arc<ThreadWaker<()>>,
     thread_handle: JoinHandle<()>,
 
     get_item: C,
 }
 
-impl<K, V, C, Fut> AsyncLruCache<K, V, C, Fut>
+// type Fut<V> = Future<Output = V>;
+// type C<K, V> = Fn(K)
+
+impl<K, V, C, Fut> AsyncLruCache<K, V, C>
 where
     K: Hash + Eq + Clone + Send + 'static,
     V: Clone + Send + 'static,
@@ -59,7 +62,7 @@ where
     Fut: Future<Output = V> + Send + 'static, // C: Fn(K) -> Pin<Box<dyn Future<Output = V>>>, // F: Future<Output = V> + Send + 'static
 {
     pub fn new(cache_size: NonZeroUsize, get_item: C) -> Self {
-        let cache: Arc<Mutex<LruCache<K, FutureStatus<Pin<Box<Fut>>, V>>>> =
+        let cache: Arc<Mutex<LruCache<K, FutureStatus<Pin<Box<dyn Future<Output = V> + Send>>>>>> =
             Arc::new(Mutex::new(LruCache::new(cache_size)));
 
         // Spawn the thread that'll service all the outstanding futures
@@ -98,10 +101,6 @@ where
     /// Get an item from the cache. If the item isn't in the cache, or the cache isn't
     /// done loading the item, return None.
     pub fn load(&mut self, key: K) -> Option<V> {
-        // self.cache.lock().unwrap().pop(key).map(|future_status| match future_status {
-        //     FutureStatus::Pending(_future) => None,
-        //     FutureStatus::Done(value) => Some(value),
-        // })?
         // Lock the mutex guarding the cache
         let cache = &mut self.cache.lock().unwrap();
 
@@ -127,7 +126,7 @@ where
 
 #[test]
 fn test_async_lru_cache() {
-    let mut cache: AsyncLruCache<String, f64, _, _> =
+    let mut cache: AsyncLruCache<String, f64, _> =
         AsyncLruCache::new(NonZeroUsize::new(2).unwrap(), async |key: String| {
             // thread::sleep(Duration::from_millis(200));
             foo().await;
