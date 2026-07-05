@@ -1,3 +1,4 @@
+use lru::LruCache;
 use std::{
     hash::Hash,
     num::NonZeroUsize,
@@ -6,13 +7,11 @@ use std::{
     task::Wake,
     thread::{self, JoinHandle, Thread},
 };
-use lru::LruCache;
 
 enum FutureStatus<Fut>
 where
     Fut: Future,
 {
-    // Pending(Pin<Box<dyn Future<Output = R> + Send>>),
     Pending(Fut),
     /// The future is done being executed (the last call to `.poll()` returned `Poll::Ready`)
     Done(Fut::Output),
@@ -32,7 +31,7 @@ impl Wake for ThreadWaker {
 /// - `V`: The value of the LRU cache
 /// - `C`: The async closure that's used to load items into the cache
 /// - `Fut`: The type of the future returned by `C`
-pub struct AsyncLruCache<K, V, C> {
+pub struct AsyncLruCache<K, V> {
     /// Wow, that's quite the type. Let me break it down for you:
     /// - The combination of `Arc` and `Mutex` allows us to sync and modify the `LruCache` between threads.
     ///   We need this because the worker thread accesses and updates the `LruCache` at the same time the
@@ -47,21 +46,23 @@ pub struct AsyncLruCache<K, V, C> {
     // waker: Arc<ThreadWaker<()>>,
     thread_handle: JoinHandle<()>,
 
-    get_item: C,
+    /// The function to call to get a future for a given key
+    lambda: Box<dyn Fn(K) -> Pin<Box<dyn Future<Output = V> + Send + 'static>>>,
 }
 
 // type Fut<V> = Future<Output = V>;
 // type C<K, V> = Fn(K)
 
-impl<K, V, C, Fut> AsyncLruCache<K, V, C>
+impl<K, V> AsyncLruCache<K, V>
 where
     K: Hash + Eq + Clone + Send + 'static,
     V: Clone + Send + 'static,
-    // C: AsyncFn(K) -> V + Send + 'static,
-    C: Fn(K) -> Fut,
-    Fut: Future<Output = V> + Send + 'static, // C: Fn(K) -> Pin<Box<dyn Future<Output = V>>>, // F: Future<Output = V> + Send + 'static
 {
-    pub fn new(cache_size: NonZeroUsize, get_item: C) -> Self {
+    pub fn new<C, Fut>(cache_size: NonZeroUsize, get_item: /*&'static*/ C) -> Self
+    where
+        C: Fn(K) -> Fut + 'static,
+        Fut: Future<Output = V> + Send + 'static,
+    {
         let cache: Arc<Mutex<LruCache<K, FutureStatus<Pin<Box<dyn Future<Output = V> + Send>>>>>> =
             Arc::new(Mutex::new(LruCache::new(cache_size)));
 
@@ -94,7 +95,7 @@ where
         Self {
             cache,
             thread_handle,
-            get_item,
+            lambda: Box::new(move |key| Box::pin(get_item(key))),
         }
     }
 
@@ -113,7 +114,7 @@ where
                 // Resume the thread that handles the futures
                 self.thread_handle.thread().unpark();
 
-                let future = Box::pin((self.get_item)(key.clone()));
+                let future = (self.lambda)(key.clone());
                 // let pinned_fut = pin!(future);
                 // We don't have a pending future for this item, so add one
                 cache.put(key, FutureStatus::Pending(future));
@@ -126,7 +127,7 @@ where
 
 #[test]
 fn test_async_lru_cache() {
-    let mut cache: AsyncLruCache<String, f64, _> =
+    let mut cache: AsyncLruCache<String, f64> =
         AsyncLruCache::new(NonZeroUsize::new(2).unwrap(), async |key: String| {
             // thread::sleep(Duration::from_millis(200));
             foo().await;

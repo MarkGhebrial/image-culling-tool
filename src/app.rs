@@ -1,14 +1,20 @@
 //! Contains all the GUI code
 
+use std::{path::PathBuf, sync::Arc};
+
 use eframe::egui::{self, Key};
 
-use crate::{cullfile::Cullfile, image::ImageWithMetadata, zoom_image_widget::ZoomImage};
+use crate::{
+    async_runtime::AsyncLruCache, cullfile::Cullfile, image::ImageWithMetadata,
+    image_wrapper::ImageWrapper, zoom_image_widget::ZoomImage,
+};
 
 pub struct MyApp {
     cullfile: Cullfile,
-    images: Vec<ImageWithMetadata>,
-    selected_image_index: usize,
 
+    images: Vec<ImageWithMetadata>,
+    image_cache: AsyncLruCache<PathBuf, Arc<ImageWrapper>>,
+    selected_image_index: usize,
     image_zoom_widget: ZoomImage,
 }
 
@@ -16,9 +22,22 @@ impl MyApp {
     pub fn new(cullfile: Cullfile, images: Vec<ImageWithMetadata>, ctx: &egui::Context) -> Self {
         let image_zoom_widget = ZoomImage::new(images[0].image_thumb.clone(), ctx);
 
+        let image_cache = AsyncLruCache::new(10.try_into().unwrap(), async |path: PathBuf| {
+            println!("This is executing");
+
+            let file = async_fs::File::open(path).await.unwrap();
+
+            println!("This is also executing asynchronously!");
+
+            // image::ImageReader::new(file);
+
+            return Arc::new(ImageWrapper(image::RgbImage::new(10, 10)));
+        });
+
         Self {
             cullfile,
             images,
+            image_cache,
             selected_image_index: 0,
             image_zoom_widget,
         }
@@ -26,6 +45,14 @@ impl MyApp {
 
     fn selected_image(&self) -> &ImageWithMetadata {
         &self.images[self.selected_image_index]
+    }
+
+    /// Load the specified full resolution image from the cache, falling back to the low resolution
+    /// thumbnail on cache misses
+    fn load_selected_image_from_cache(&mut self) -> Arc<ImageWrapper> {
+        self.image_cache
+            .load(self.selected_image().path_relative_to_cullfile.clone())
+            .unwrap_or_else(|| self.selected_image().image_thumb.clone())
     }
 }
 
@@ -84,7 +111,7 @@ impl eframe::App for MyApp {
                 }
             });
 
-            let image = self.selected_image().image_thumb.clone();
+            let image = self.load_selected_image_from_cache();
             self.image_zoom_widget.set_image(image, ctx);
             ui.add(&mut self.image_zoom_widget);
 

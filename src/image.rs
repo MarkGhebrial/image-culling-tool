@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::pin::{Pin, pin};
 use std::sync::Arc;
 use std::time;
 use std::{fs, path::PathBuf};
@@ -57,7 +56,9 @@ pub fn load_images(
             Some(ImageWithMetadata {
                 path_relative_to_cullfile: file.path(),
                 date_captured: file.metadata().unwrap().created().unwrap(),
-                image_thumb: Arc::new(ImageWrapper(image.thumbnail(thumb_size, thumb_size).to_rgb8())),
+                image_thumb: Arc::new(ImageWrapper(
+                    image.thumbnail(thumb_size, thumb_size).to_rgb8(),
+                )),
             })
         })
         .collect();
