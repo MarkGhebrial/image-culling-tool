@@ -31,14 +31,6 @@ pub struct ImageCollection {
     pub cache: AsyncLruCache<ImageLoader>,
 }
 
-// impl Index<usize> for ImageCollection {
-//     type Output = ImageWithMetadata;
-
-//     fn index(&self, index: usize) -> &Self::Output {
-//         &self.images[index]
-//     }
-// }
-
 impl Deref for ImageCollection {
     type Target = Vec<ImageWithMetadata>;
 
