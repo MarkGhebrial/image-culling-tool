@@ -11,7 +11,6 @@ use eframe::egui;
 
 use std::{env, path::Path, process::exit};
 
-use crate::cullfile::Cullfile;
 use crate::image::ImageCollection;
 
 fn main() {
@@ -62,7 +61,6 @@ fn main() {
         options,
         Box::new(|cc| {
             Ok(Box::new(MyApp::new(
-                Cullfile::load(&path),
                 images,
                 &cc.egui_ctx,
             )))

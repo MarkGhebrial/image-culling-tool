@@ -1,11 +1,10 @@
 //! Contains all the GUI code
 
 use eframe::{
-    egui::{self, Color32, Key, Stroke, StrokeKind, Vec2},
-    epaint::RectShape,
+    egui::{self, Color32, Key, Stroke, StrokeKind, Vec2}, epaint::{CircleShape, RectShape},
 };
 
-use crate::{cullfile::Cullfile, image::ImageCollection, util::wrap, zoom_image_widget::ZoomImage};
+use crate::{cullfile::Rating, image::ImageCollection, util::wrap, zoom_image_widget::ZoomImage};
 
 // enum AppEvents {
 //     GoToNextImage,
@@ -16,19 +15,16 @@ use crate::{cullfile::Cullfile, image::ImageCollection, util::wrap, zoom_image_w
 // }
 
 pub struct MyApp {
-    cullfile: Cullfile,
-
     images: ImageCollection,
     selected_image_index: usize,
     image_zoom_widget: ZoomImage,
 }
 
 impl MyApp {
-    pub fn new(cullfile: Cullfile, images: ImageCollection, ctx: &egui::Context) -> Self {
+    pub fn new(images: ImageCollection, ctx: &egui::Context) -> Self {
         let image_zoom_widget = ZoomImage::new(images[0].image_thumb.clone(), ctx);
 
         Self {
-            cullfile,
             images,
             selected_image_index: 0,
             image_zoom_widget,
@@ -57,6 +53,21 @@ impl eframe::App for MyApp {
                 0,
                 self.images.len() as isize,
             ) as usize;
+
+            if input.key_pressed(Key::R) {
+                self.image_zoom_widget.reset_zoom();
+            }
+
+            let rating = &mut self.images[self.selected_image_index].rating;
+            if input.key_pressed(Key::Num5) { *rating = Rating::Five }
+            else if input.key_pressed(Key::Num4) { *rating = Rating::Four }
+            else if input.key_pressed(Key::Num3) { *rating = Rating::Three }
+            else if input.key_pressed(Key::Num2) { *rating = Rating::Two }
+            else if input.key_pressed(Key::Num1) { *rating = Rating::One }
+
+            if input.key_pressed(Key::S) {
+                println!("TODO: Handle saves");
+            }
         });
 
         // Start loading the images ahead and behind the currently selected image
@@ -89,12 +100,18 @@ impl eframe::App for MyApp {
                         StrokeKind::Inside,
                     ));
 
-                    ui.label(format!(
-                        "{}",
-                        self.cullfile.get_rating(
-                            &self.images[self.selected_image_index].path_relative_to_cullfile
-                        )
-                    ));
+                    // Display the star rating of the image                    
+                    for star_idx in 0..5 {
+                        let (_, rect) = ui.allocate_space(Vec2::new(10.0, 10.0));
+                        let mut circle = CircleShape::stroke(rect.center(), 5.0, Stroke::new(2.5, Color32::GRAY));
+                        
+                        // Fill the circles according to the image's rating
+                        if star_idx < self.images[self.selected_image_index].rating as usize {
+                            // ui.painter().add(CircleShape::filled(rect.center(), 5.0, Color32::YELLOW));
+                            circle.fill = Color32::GRAY;
+                        }
+                        ui.painter().add(circle);
+                    }
 
                     ui.separator();
 

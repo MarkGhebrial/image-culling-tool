@@ -43,6 +43,11 @@ impl ZoomImage {
         );
         self.image = image;
     }
+
+    pub fn reset_zoom(&mut self) {
+        self.zoom_translation = Vec2::ZERO;
+        self.zoom_scale = 1.0;
+    }
 }
 
 impl Widget for &mut ZoomImage {
@@ -86,7 +91,7 @@ impl Widget for &mut ZoomImage {
         let image_rect_response = ui.allocate_rect(image_rect, Sense::all());
 
         // If the image is being hovered
-        if let Some(hover_pos) = image_rect_response.hover_pos() {
+        if let Some(_hover_pos) = image_rect_response.hover_pos() {
             // Get access to the egui InputState
             ui.input_mut(|input| {
                 // TODO: Use this to calculate the % zoom factor

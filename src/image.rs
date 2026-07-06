@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::sync::Arc;
 use std::time;
@@ -11,8 +11,9 @@ use rayon::prelude::*;
 use crate::async_runtime::AsyncLruCache;
 use crate::cullfile::{Cullfile, Rating};
 use crate::image_wrapper::ImageWrapper;
-use crate::util::wrap;
+use crate::util::{merge_sort, wrap};
 
+#[derive(Clone)]
 pub struct ImageWithMetadata {
     /// The name of the file this image is stored in. Maybe I can instead store
     /// an `&std::fs::File`? Should make it easier to copy the image to a different
@@ -36,6 +37,11 @@ impl Deref for ImageCollection {
 
     fn deref(&self) -> &Self::Target {
         &self.images
+    }
+}
+impl DerefMut for ImageCollection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.images
     }
 }
 
@@ -83,7 +89,8 @@ impl ImageCollection {
             .collect();
 
         // TODO: Sort the images by capture time
-
+        let images = merge_sort(&images, |a, b| a.date_captured > b.date_captured);
+            
         Ok(Self {
             images,
             cache: AsyncLruCache::new(10.try_into().unwrap()),
