@@ -28,8 +28,12 @@ pub struct ImageWithMetadata {
 }
 
 pub struct ImageCollection {
+    /// A list of image thumbnails and their metadata
     images: Vec<ImageWithMetadata>,
+    /// Used to asynchronously load full resolution images from disk
     pub cache: AsyncLruCache<ImageLoader>,
+
+    cullfile: Cullfile,
 }
 
 impl Deref for ImageCollection {
@@ -90,10 +94,11 @@ impl ImageCollection {
 
         // TODO: Sort the images by capture time
         let images = merge_sort(&images, |a, b| a.date_captured > b.date_captured);
-            
+
         Ok(Self {
             images,
             cache: AsyncLruCache::new(10.try_into().unwrap()),
+            cullfile,
         })
     }
 
@@ -114,6 +119,14 @@ impl ImageCollection {
                 self.cache.load(image.path_relative_to_cullfile.clone());
             }
         }
+    }
+
+    pub fn save_cullfile(&mut self) {
+        for image in self.images.iter() {
+            self.cullfile
+                .set_rating(&image.path_relative_to_cullfile, image.rating);
+        }
+        self.cullfile.save();
     }
 }
 

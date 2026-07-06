@@ -45,19 +45,22 @@ impl Display for Rating {
 }
 
 pub struct Cullfile {
-    // Map an image file name to its rating
+    /// Map an image file name to its rating
     ratings: HashMap<PathBuf, Rating>,
+
+    base_path: PathBuf,
 }
 
 impl Cullfile {
     /// Load the contents of the current directory's cullfile.
     pub fn load(path: impl AsRef<Path>) -> Self {
         let mut ratings = HashMap::new();
+        let base_path: PathBuf = path.as_ref().to_path_buf();
 
         // Get the current working directory
         let Ok(file) = std::fs::read_to_string(path.as_ref().to_path_buf().join(".cullfile"))
         else {
-            return Self { ratings };
+            return Self { ratings, base_path };
         };
 
         for line in file.lines() {
@@ -77,20 +80,17 @@ impl Cullfile {
             ratings.insert(PathBuf::from_str(&file_path).unwrap(), rating);
         }
 
-        Self { ratings }
-    }
-
-    pub fn from_hashmap(map: HashMap<PathBuf, Rating>) -> Self {
-        Self { ratings: map }
+        Self { ratings, base_path }
     }
 
     // Serialize self and save to ".cullfile" in the current working directory, overwriting it if it already exists
-    pub fn save(&self, path: impl AsRef<Path>) {
-        let mut file =
-            std::fs::File::create(path.as_ref().to_path_buf().join(".cullfile")).unwrap();
+    pub fn save(&self) {
+        let mut file = std::fs::File::create(self.base_path.join(".cullfile")).unwrap();
 
         for (path, rating) in self.ratings.iter() {
-            writeln!(file, "{} {}", rating, path.to_string_lossy()).unwrap();
+            if !matches!(rating, Rating::Unrated) {
+                writeln!(file, "{} {}", *rating as isize, path.to_string_lossy()).unwrap();
+            }
         }
     }
 

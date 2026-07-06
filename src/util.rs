@@ -22,7 +22,6 @@ fn test_wrap() {
     assert_eq!(wrap(30, 0, 30), 0);
 }
 
-
 pub fn merge_sort<T>(array: &[T], compare: impl Fn(&T, &T) -> bool + Clone) -> Vec<T>
 where
     T: Clone,

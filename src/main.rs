@@ -59,12 +59,7 @@ fn main() {
     eframe::run_native(
         "cull tool",
         options,
-        Box::new(|cc| {
-            Ok(Box::new(MyApp::new(
-                images,
-                &cc.egui_ctx,
-            )))
-        }),
+        Box::new(|cc| Ok(Box::new(MyApp::new(images, &cc.egui_ctx)))),
     )
     .unwrap();
 }

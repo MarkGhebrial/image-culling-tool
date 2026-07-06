@@ -1,7 +1,8 @@
 //! Contains all the GUI code
 
 use eframe::{
-    egui::{self, Color32, Key, Stroke, StrokeKind, Vec2}, epaint::{CircleShape, RectShape},
+    egui::{self, Color32, Key, Stroke, StrokeKind, Vec2},
+    epaint::{CircleShape, RectShape},
 };
 
 use crate::{cullfile::Rating, image::ImageCollection, util::wrap, zoom_image_widget::ZoomImage};
@@ -29,6 +30,10 @@ impl MyApp {
             selected_image_index: 0,
             image_zoom_widget,
         }
+    }
+
+    fn save(&mut self) {
+        self.images.save_cullfile();
     }
 
     // fn selected_image(&self) -> &ImageWithMetadata {
@@ -59,14 +64,20 @@ impl eframe::App for MyApp {
             }
 
             let rating = &mut self.images[self.selected_image_index].rating;
-            if input.key_pressed(Key::Num5) { *rating = Rating::Five }
-            else if input.key_pressed(Key::Num4) { *rating = Rating::Four }
-            else if input.key_pressed(Key::Num3) { *rating = Rating::Three }
-            else if input.key_pressed(Key::Num2) { *rating = Rating::Two }
-            else if input.key_pressed(Key::Num1) { *rating = Rating::One }
+            if input.key_pressed(Key::Num5) {
+                *rating = Rating::Five
+            } else if input.key_pressed(Key::Num4) {
+                *rating = Rating::Four
+            } else if input.key_pressed(Key::Num3) {
+                *rating = Rating::Three
+            } else if input.key_pressed(Key::Num2) {
+                *rating = Rating::Two
+            } else if input.key_pressed(Key::Num1) {
+                *rating = Rating::One
+            }
 
             if input.key_pressed(Key::S) {
-                println!("TODO: Handle saves");
+                self.save();
             }
         });
 
@@ -100,11 +111,15 @@ impl eframe::App for MyApp {
                         StrokeKind::Inside,
                     ));
 
-                    // Display the star rating of the image                    
+                    // Display the star rating of the image
                     for star_idx in 0..5 {
                         let (_, rect) = ui.allocate_space(Vec2::new(10.0, 10.0));
-                        let mut circle = CircleShape::stroke(rect.center(), 5.0, Stroke::new(2.5, Color32::GRAY));
-                        
+                        let mut circle = CircleShape::stroke(
+                            rect.center(),
+                            5.0,
+                            Stroke::new(2.5, Color32::GRAY),
+                        );
+
                         // Fill the circles according to the image's rating
                         if star_idx < self.images[self.selected_image_index].rating as usize {
                             // ui.painter().add(CircleShape::filled(rect.center(), 5.0, Color32::YELLOW));
@@ -146,8 +161,8 @@ impl eframe::App for MyApp {
     }
 
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
-        println!("eframe autosave")
-        // TODO: Save cullfile
+        println!("eframe autosave");
+        self.save();
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {}
