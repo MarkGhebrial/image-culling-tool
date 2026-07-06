@@ -5,9 +5,7 @@ use eframe::{
     epaint::RectShape,
 };
 
-use crate::{
-    cullfile::Cullfile, image::ImageCollection, zoom_image_widget::ZoomImage,
-};
+use crate::{cullfile::Cullfile, image::ImageCollection, util::wrap, zoom_image_widget::ZoomImage};
 
 // enum AppEvents {
 //     GoToNextImage,
@@ -46,33 +44,30 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Read keypresses and input events
         ctx.input(|input| {
-            let go_next =
-                input.key_pressed(Key::ArrowRight) || input.key_pressed(Key::ArrowDown);
+            let go_next = input.key_pressed(Key::ArrowRight) || input.key_pressed(Key::ArrowDown);
             let go_prev = input.key_pressed(Key::ArrowLeft) || input.key_pressed(Key::ArrowUp);
-        
-            match (go_next, go_prev) {
-                (true, true) | (false, false) => (), // Do nothing if both or neither are pressed
-                (true, false) => {
-                    self.selected_image_index =
-                    (self.selected_image_index + 1) % (self.images.len() - 1);
-                }
-                (false, true) => {
-                    if self.selected_image_index == 0 {
-                        self.selected_image_index = self.images.len() - 1;
-                    } else {
-                        self.selected_image_index -= 1;
-                    }
-                }
-            }
+
+            let incr = match (go_next, go_prev) {
+                (true, true) | (false, false) => 0, // Do nothing if both or neither are pressed
+                (true, false) => 1,
+                (false, true) => -1,
+            };
+            self.selected_image_index = wrap(
+                self.selected_image_index as isize + incr,
+                0,
+                self.images.len() as isize,
+            ) as usize;
         });
-            
+
+        // Start loading the images ahead and behind the currently selected image
+        let i = self.selected_image_index as isize;
+        self.images.preload(i - 2..=i + 2);
+
         // Display the bottom status bar
         egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, "bottom panel")
             .resizable(false)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    println!("`is_loaded` key: {:?}", self.images[self.selected_image_index].path_relative_to_cullfile);
-
                     let indicator_color = match self.images.cache.is_loaded(
                         &self.images[self.selected_image_index].path_relative_to_cullfile,
                     ) {

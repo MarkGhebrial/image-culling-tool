@@ -3,6 +3,7 @@ mod async_runtime;
 mod cullfile;
 mod image;
 mod image_wrapper;
+mod util;
 mod zoom_image_widget;
 
 use app::*;

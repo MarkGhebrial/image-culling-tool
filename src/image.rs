@@ -1,4 +1,4 @@
-use std::ops::{Deref, Range};
+use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
 use std::time;
@@ -11,6 +11,7 @@ use rayon::prelude::*;
 use crate::async_runtime::AsyncLruCache;
 use crate::cullfile::{Cullfile, Rating};
 use crate::image_wrapper::ImageWrapper;
+use crate::util::wrap;
 
 pub struct ImageWithMetadata {
     /// The name of the file this image is stored in. Maybe I can instead store
@@ -106,10 +107,15 @@ impl ImageCollection {
             .unwrap_or_else(|| self.images[index].image_thumb.clone())
     }
 
-    // / Start loading the given range of indexes.
-    // pub fn preload(&mut self, range: Range<usize>) {
-    //     self.cache.
-    // }
+    /// Start loading the given range of indexes.
+    pub fn preload(&mut self, range: impl std::iter::Iterator<Item = isize>) {
+        for index in range.map(|i| wrap(i, 0, self.images.len() as isize) as usize) {
+            let image = &self.images[index];
+            if !self.cache.is_loaded(&image.path_relative_to_cullfile) {
+                self.cache.load(image.path_relative_to_cullfile.clone());
+            }
+        }
+    }
 }
 
 /// Load an image from the given file path. If `thumb_size != 0`, then create a lower
