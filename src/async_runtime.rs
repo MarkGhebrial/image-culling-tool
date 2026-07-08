@@ -1,18 +1,49 @@
+use eframe::egui::ahash::HashMap;
 use lru::LruCache;
 use std::{
     hash::Hash,
     num::NonZeroUsize,
     pin::Pin,
     sync::{Arc, Mutex},
-    task::Wake,
+    task::{Context, Poll, Wake},
     thread::{self, JoinHandle, Thread},
 };
 
-pub trait AsyncLruCacheLoader {
+pub trait AsyncLoader {
     type Key;
     type Value;
 
     fn load(key: Self::Key) -> impl Future<Output = Self::Value> + Send;
+}
+
+/// TODO: Refactor AsyncLruCache to be generic over this
+pub trait AsyncCacheStore {
+    type Key;
+    type Value;
+
+    fn get(&mut self, key: &Self::Key) -> Option<&Self::Value>;
+}
+impl<K, V> AsyncCacheStore for LruCache<K, V>
+where
+    K: Hash + Eq,
+{
+    type Key = K;
+    type Value = V;
+
+    fn get(&mut self, key: &K) -> Option<&V> {
+        LruCache::get(self, key)
+    }
+}
+impl<K, V> AsyncCacheStore for HashMap<K, V>
+where
+    K: Hash + Eq,
+{
+    type Key = K;
+    type Value = V;
+
+    fn get(&mut self, key: &K) -> Option<&V> {
+        HashMap::get(self, key)
+    }
 }
 
 enum FutureStatus<Fut>
@@ -28,8 +59,41 @@ impl<Fut> FutureStatus<Fut>
 where
     Fut: Future,
 {
+    fn from_future(future: Fut) -> Self {
+        Self::Pending(future)
+    }
+
     fn is_done(&self) -> bool {
         matches!(self, FutureStatus::Done(_))
+    }
+
+    fn unwrap_done(&self) -> &Fut::Output {
+        match self {
+            Self::Done(output) => output,
+            _ => panic!(),
+        }
+    }
+}
+impl<T, Fut> FutureStatus<Pin<T>>
+where
+    T: std::ops::DerefMut<Target = Fut>,
+    Fut: Future + ?Sized,
+{
+    fn poll(&mut self, cx: &mut std::task::Context<'_>) -> Option<&Fut::Output> {
+        match self {
+            FutureStatus::Pending(future) => {
+                // let poll_
+                let poll_result = future.as_mut().poll(cx);
+                match poll_result {
+                    Poll::Ready(output) => {
+                        *self = Self::Done(output);
+                        Some(self.unwrap_done())
+                    }
+                    Poll::Pending => None,
+                }
+            }
+            FutureStatus::Done(output) => Some(output),
+        }
     }
 }
 
@@ -49,7 +113,7 @@ impl Wake for ThreadWaker {
 /// - `Fut`: The type of the future returned by `C`
 pub struct AsyncLruCache<L>
 where
-    L: AsyncLruCacheLoader,
+    L: AsyncLoader,
 {
     /// Wow, that's quite the type. Let me break it down for you:
     /// - The combination of `Arc` and `Mutex` allows us to sync and modify the `LruCache` between threads.
@@ -63,47 +127,45 @@ where
     ///   It's what we poll to load items into the cache.
     cache:
         Arc<Mutex<LruCache<L::Key, FutureStatus<Pin<Box<dyn Future<Output = L::Value> + Send>>>>>>,
-    // waker: Arc<ThreadWaker<()>>,
+    
+    /// A handle to the worker thread. Used for resuming the thread when a new future is added to the cache.
     thread_handle: JoinHandle<()>,
+    /// Set this to true to kill the worker thread.
+    worker_thread_kill_mutex: Arc<Mutex<bool>>,
 }
 
 impl<L> AsyncLruCache<L>
 where
-    L: AsyncLruCacheLoader + 'static,
-    L::Key: Hash + Eq + Clone + Send, // + 'static,
-    L::Value: Send + Clone,           // + 'static,
+    L: AsyncLoader + 'static,
+    L::Key: Hash + Eq + Clone + Send,
+    L::Value: Send + Clone,
 {
     pub fn new(cache_size: NonZeroUsize) -> Self {
         let cache: Arc<
             Mutex<LruCache<L::Key, FutureStatus<Pin<Box<dyn Future<Output = L::Value> + Send>>>>>,
         > = Arc::new(Mutex::new(LruCache::new(cache_size)));
 
-        // Create a weak
+        let worker_thread_kill_mutex = Arc::new(Mutex::new(false));
+
+        // Create a weak pointer to the cache structure. The worker thread doesn't need to outlive the
+        // AsyncLruCache object, so 
         let cache_copy = Arc::downgrade(&cache);
+        let kill_mutex_copy = worker_thread_kill_mutex.clone();
 
         // Spawn the thread that'll service all the outstanding futures
         let thread_handle = std::thread::spawn(move || {
             // Wakes up this thread when a future finishes doing its thing
             let waker = Arc::new(ThreadWaker(thread::current()));
             loop {
-                for (_key, future_status) in
-                    cache_copy.upgrade().unwrap().lock().unwrap().iter_mut()
-                {
-                    if let FutureStatus::Pending(future) = future_status {
-                        match future
-                            .as_mut()
-                            .poll(&mut std::task::Context::from_waker(&waker.clone().into()))
-                        {
-                            std::task::Poll::Ready(value) => {
-                                *future_status = FutureStatus::Done(value)
-                            }
-                            std::task::Poll::Pending => { /* Do nothing, just keep polling this future in the next iteration */
-                            }
-                        }
-                    }
+                // If the kill mutex is true, break out of the loop and kill the thread.
+                if *kill_mutex_copy.lock().unwrap() { break; }
+
+                for (_, future_status) in cache_copy.upgrade().unwrap().lock().unwrap().iter_mut() {
+                    future_status.poll(&mut Context::from_waker(&waker.clone().into()));
                 }
 
-                // Park the thread until the waker wakes it up
+                // Park the thread until the waker wakes it up. TODO: What happens to this thread when
+                // the AsyncLruCache object is deallocated? Does this thread stay parked forever?
                 thread::park();
             }
         });
@@ -111,6 +173,7 @@ where
         Self {
             cache,
             thread_handle,
+            worker_thread_kill_mutex,
         }
     }
 
@@ -131,7 +194,7 @@ where
                 // We don't have a pending future for this item, so add one
                 let key_copy = key.clone();
                 let future = Box::pin(L::load(key_copy));
-                cache.put(key, FutureStatus::Pending(future));
+                cache.put(key, FutureStatus::from_future(future));
 
                 // Resume the thread that handles the futures
                 self.thread_handle.thread().unpark();
@@ -152,4 +215,29 @@ where
     }
 }
 
+impl<L> Drop for AsyncLruCache<L> where L: AsyncLoader {
+    fn drop(&mut self) {
+        // Tell the worker thread to stop running
+        *self.worker_thread_kill_mutex.lock().unwrap() = true;
+        // Resume the worker thread so that it'll see the updated value of the worker_thread_kill_mutex
+        self.thread_handle.thread().unpark();
+    }
+}
+
 // TODO: Add tests
+
+#[test]
+fn foo() {
+    struct DummyWaker;
+    impl std::task::Wake for DummyWaker {
+        fn wake(self: Arc<Self>) {
+            // Do nothing
+        }
+    }
+
+    let fut = std::pin::pin!(async { 1 });
+    // let fut = async { 1 };
+    let mut fs = FutureStatus::from_future(fut);
+
+    fs.poll(&mut Context::from_waker(&Arc::new(DummyWaker).into()));
+}

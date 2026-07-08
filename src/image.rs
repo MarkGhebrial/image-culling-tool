@@ -152,7 +152,7 @@ fn load_image_from_file(
 }
 
 pub struct ImageLoader;
-impl crate::async_runtime::AsyncLruCacheLoader for ImageLoader {
+impl crate::async_runtime::AsyncLoader for ImageLoader {
     type Key = PathBuf;
     type Value = Arc<ImageWrapper>;
 
