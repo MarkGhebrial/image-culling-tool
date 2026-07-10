@@ -1,3 +1,10 @@
+pub fn min<T>(a: T, b: T) -> T
+where
+    T: PartialOrd,
+{
+    if a > b { b } else { a }
+}
+
 pub fn wrap(mut num: isize, min: isize, max: isize) -> isize {
     let difference = max - min;
     while num < min {

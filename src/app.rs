@@ -1,11 +1,11 @@
 //! Contains all the GUI code
 
 use eframe::{
-    egui::{self, Color32, Key, Stroke, StrokeKind, Vec2},
+    egui::{self, Color32, Key, ProgressBar, Stroke, StrokeKind, Vec2},
     epaint::{CircleShape, RectShape},
 };
 
-use crate::{cullfile::Rating, image::ImageCollection, util::wrap, zoom_image_widget::ZoomImage};
+use crate::{cullfile::Rating, image::ImageCollection, util::{self, wrap}, zoom_image_widget::ZoomImage};
 
 // enum AppEvents {
 //     GoToNextImage,
@@ -122,7 +122,6 @@ impl eframe::App for MyApp {
 
                         // Fill the circles according to the image's rating
                         if star_idx < self.images[self.selected_image_index].rating as usize {
-                            // ui.painter().add(CircleShape::filled(rect.center(), 5.0, Color32::YELLOW));
                             circle.fill = Color32::GRAY;
                         }
                         ui.painter().add(circle);
@@ -130,6 +129,7 @@ impl eframe::App for MyApp {
 
                     ui.separator();
 
+                    // Display the current image index and the total number of images
                     ui.label(format!(
                         "{} of {}",
                         self.selected_image_index + 1,
@@ -138,6 +138,7 @@ impl eframe::App for MyApp {
 
                     ui.separator();
 
+                    // Display the file name of the current image
                     ui.label(format!(
                         "{}",
                         self.images[self.selected_image_index]
@@ -147,6 +148,19 @@ impl eframe::App for MyApp {
                             .to_str()
                             .unwrap()
                     ));
+
+                    // Display the stuff on the right side of the status bar
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.label("Test");
+                        ui.separator();
+                        ui.label("Test2");
+                        ui.separator();
+                        ui.add(
+                            ProgressBar::new(0.75)
+                                .desired_width(util::min(ui.available_width(), 200.0))
+                                .desired_height(5.0),
+                        );
+                    });
                 });
             });
 
@@ -165,7 +179,9 @@ impl eframe::App for MyApp {
         self.save();
     }
 
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {}
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.save();
+    }
 
     fn auto_save_interval(&self) -> std::time::Duration {
         std::time::Duration::from_secs(30)
