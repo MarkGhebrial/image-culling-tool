@@ -127,7 +127,7 @@ where
     ///   It's what we poll to load items into the cache.
     cache:
         Arc<Mutex<LruCache<L::Key, FutureStatus<Pin<Box<dyn Future<Output = L::Value> + Send>>>>>>,
-    
+
     /// A handle to the worker thread. Used for resuming the thread when a new future is added to the cache.
     thread_handle: JoinHandle<()>,
     /// Set this to true to kill the worker thread.
@@ -148,7 +148,7 @@ where
         let worker_thread_kill_mutex = Arc::new(Mutex::new(false));
 
         // Create a weak pointer to the cache structure. The worker thread doesn't need to outlive the
-        // AsyncLruCache object, so 
+        // AsyncLruCache object, so
         let cache_copy = Arc::downgrade(&cache);
         let kill_mutex_copy = worker_thread_kill_mutex.clone();
 
@@ -158,7 +158,9 @@ where
             let waker = Arc::new(ThreadWaker(thread::current()));
             loop {
                 // If the kill mutex is true, break out of the loop and kill the thread.
-                if *kill_mutex_copy.lock().unwrap() { break; }
+                if *kill_mutex_copy.lock().unwrap() {
+                    break;
+                }
 
                 for (_, future_status) in cache_copy.upgrade().unwrap().lock().unwrap().iter_mut() {
                     future_status.poll(&mut Context::from_waker(&waker.clone().into()));
@@ -215,7 +217,10 @@ where
     }
 }
 
-impl<L> Drop for AsyncLruCache<L> where L: AsyncLoader {
+impl<L> Drop for AsyncLruCache<L>
+where
+    L: AsyncLoader,
+{
     fn drop(&mut self) {
         // Tell the worker thread to stop running
         *self.worker_thread_kill_mutex.lock().unwrap() = true;
