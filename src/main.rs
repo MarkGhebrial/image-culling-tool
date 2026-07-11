@@ -1,4 +1,5 @@
 mod app;
+mod async_executor;
 mod async_runtime;
 mod cullfile;
 mod image;

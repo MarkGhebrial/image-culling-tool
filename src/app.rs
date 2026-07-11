@@ -5,7 +5,12 @@ use eframe::{
     epaint::{CircleShape, RectShape},
 };
 
-use crate::{cullfile::Rating, image::ImageCollection, util::{self, wrap}, zoom_image_widget::ZoomImage};
+use crate::{
+    cullfile::Rating,
+    image::ImageCollection,
+    util::{self, wrap},
+    zoom_image_widget::ZoomImage,
+};
 
 // enum AppEvents {
 //     GoToNextImage,
