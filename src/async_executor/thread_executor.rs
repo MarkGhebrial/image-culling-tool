@@ -16,18 +16,18 @@ impl ThreadExecutor {
 impl Executor for ThreadExecutor {
     type EventualId = Arc<Mutex<bool>>;
 
-    fn schedule<Fut>(&self, task: Fut) -> Arc<Eventual<Self, <Fut as Future>::Output>>
+    fn schedule<Fut>(&self, task: Fut) -> Eventual<Self, <Fut as Future>::Output>
     where
         Fut: Future + Send + 'static,
         Fut::Output: Send + Sync,
     {
         let id = Arc::new(Mutex::new(false));
 
-        let eventual = Arc::new(Eventual {
+        let eventual = Eventual {
             id: id.clone(),
             executor: Self::new(),
             value: Arc::new(OnceLock::new()),
-        });
+        };
 
         // Spawn a thread that'll poll the future and give its result to the eventual. One thread per eventual
         // let weak_eventual = Arc::downgrade(&eventual);
@@ -63,5 +63,4 @@ fn foo_bar() {
             assert_eq!(*eventual.get().unwrap(), 50usize);
         };
     }
-    // schedule(&mut executor, async {0});
 }
