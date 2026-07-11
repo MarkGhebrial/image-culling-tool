@@ -111,7 +111,8 @@ impl ImageCollection {
             .unwrap_or_else(|| self.images[index].image_thumb.clone())
     }
 
-    /// Start loading the given range of indexes.
+    /// Start loading the given list of indexes. Indexes outside the valid range (i.e. `< 0` or >= `images.len()`)
+    /// get wrapped back within the range.
     pub fn preload(&mut self, range: impl std::iter::Iterator<Item = isize>) {
         for index in range.map(|i| wrap(i, 0, self.images.len() as isize) as usize) {
             let image = &self.images[index];
