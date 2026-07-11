@@ -5,19 +5,20 @@ use eframe::{
     epaint::{CircleShape, RectShape},
 };
 
-use crate::{cullfile::Rating, image::ImageCollection, util::{self, wrap}, zoom_image_widget::ZoomImage};
-
-// enum AppEvents {
-//     GoToNextImage,
-//     GoToPrevImage,
-//     ResetZoom,
-//     RateSelectedImage(Rating),
-//     SaveCullfile,
-// }
+use crate::{
+    cullfile::Rating,
+    image::ImageCollection,
+    ui::{app_state::AppState, components, ui_component_trait::UiComponent},
+    util::{self, wrap},
+    zoom_image_widget::ZoomImage,
+};
 
 pub struct MyApp {
-    images: ImageCollection,
-    selected_image_index: usize,
+    state: AppState,
+
+    bottom_panel: components::BottomPanel,
+    // images: ImageCollection,
+    // selected_image_index: usize,
     image_zoom_widget: ZoomImage,
 }
 
@@ -26,19 +27,18 @@ impl MyApp {
         let image_zoom_widget = ZoomImage::new(images[0].image_thumb.clone(), ctx);
 
         Self {
-            images,
-            selected_image_index: 0,
+            state: AppState {
+                images,
+                selected_image_index: 0,
+            },
+            bottom_panel: components::BottomPanel,
             image_zoom_widget,
         }
     }
 
     fn save(&mut self) {
-        self.images.save_cullfile();
+        self.state.images.save_cullfile();
     }
-
-    // fn selected_image(&self) -> &ImageWithMetadata {
-    //     &self.images[self.selected_image_index]
-    // }
 }
 
 impl eframe::App for MyApp {
@@ -53,17 +53,17 @@ impl eframe::App for MyApp {
                 (true, false) => 1,
                 (false, true) => -1,
             };
-            self.selected_image_index = wrap(
-                self.selected_image_index as isize + incr,
+            self.state.selected_image_index = wrap(
+                self.state.selected_image_index as isize + incr,
                 0,
-                self.images.len() as isize,
+                self.state.images.len() as isize,
             ) as usize;
 
             if input.key_pressed(Key::R) {
                 self.image_zoom_widget.reset_zoom();
             }
 
-            let rating = &mut self.images[self.selected_image_index].rating;
+            let rating = &mut self.state.selected_image_mut().rating;
             if input.key_pressed(Key::Num5) {
                 *rating = Rating::Five
             } else if input.key_pressed(Key::Num4) {
@@ -82,93 +82,21 @@ impl eframe::App for MyApp {
         });
 
         // Start loading the images ahead and behind the currently selected image
-        let i = self.selected_image_index as isize;
-        self.images.preload(i - 2..=i + 2);
+        let i = self.state.selected_image_index as isize;
+        self.state.images.preload(i - 2..=i + 2);
 
-        // Display the bottom status bar
-        egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, "bottom panel")
+        let response = egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, "bottom panel")
             .resizable(false)
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    let indicator_color = match self.images.cache.is_loaded(
-                        &self.images[self.selected_image_index].path_relative_to_cullfile,
-                    ) {
-                        true => Color32::GREEN,
-                        false => Color32::RED,
-                    };
+            .show(ctx, |ui| self.bottom_panel.display_ui(&self.state, ui));
 
-                    // Draw the indicator in the bottom left corner
-                    let (_, mut rect) = ui.allocate_space(Vec2::new(0.0, 0.0));
-                    // Expand the rectangle to take up the top and left margins
-                    rect = rect
-                        .expand2(Vec2::new(0.0, ui.available_height() - rect.height()))
-                        .with_min_x(0.0);
-                    ui.painter().add(RectShape::new(
-                        rect,
-                        2.0,
-                        indicator_color,
-                        Stroke::NONE,
-                        StrokeKind::Inside,
-                    ));
-
-                    // Display the star rating of the image
-                    for star_idx in 0..5 {
-                        let (_, rect) = ui.allocate_space(Vec2::new(10.0, 10.0));
-                        let mut circle = CircleShape::stroke(
-                            rect.center(),
-                            5.0,
-                            Stroke::new(2.5, Color32::GRAY),
-                        );
-
-                        // Fill the circles according to the image's rating
-                        if star_idx < self.images[self.selected_image_index].rating as usize {
-                            circle.fill = Color32::GRAY;
-                        }
-                        ui.painter().add(circle);
-                    }
-
-                    ui.separator();
-
-                    // Display the current image index and the total number of images
-                    ui.label(format!(
-                        "{} of {}",
-                        self.selected_image_index + 1,
-                        self.images.len()
-                    ));
-
-                    ui.separator();
-
-                    // Display the file name of the current image
-                    ui.label(format!(
-                        "{}",
-                        self.images[self.selected_image_index]
-                            .path_relative_to_cullfile
-                            .file_name()
-                            .unwrap()
-                            .to_str()
-                            .unwrap()
-                    ));
-
-                    // Display the stuff on the right side of the status bar
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label("Test");
-                        ui.separator();
-                        ui.label("Test2");
-                        ui.separator();
-                        ui.add(
-                            ProgressBar::new(0.75)
-                                .desired_width(util::min(ui.available_width(), 200.0))
-                                .desired_height(5.0),
-                        );
-                    });
-                });
-            });
+        response.inner;
 
         // Draw the central panel. The part of the screen where the selected image is displayed
         egui::CentralPanel::default().show(ctx, |ui| {
             let image = self
+                .state
                 .images
-                .get_full_resolution_image(self.selected_image_index);
+                .get_full_resolution_image(self.state.selected_image_index);
             self.image_zoom_widget.set_image(image, ctx);
             ui.add(&mut self.image_zoom_widget);
         });
