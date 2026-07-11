@@ -35,17 +35,10 @@ pub trait Executor: Sized {
     /// Used to uniquely identify the `Eventual`s that are handed out
     type EventualId;
 
-    fn schedule<'a, Fut>(&'a self, task: Fut) -> Arc<Eventual<Self, <Fut as Future>::Output>>
+    fn schedule<'a, Fut>(&'a self, task: Fut) -> Eventual<Self, <Fut as Future>::Output>
     where
         Fut: Future + Send + 'static,
         Fut::Output: Send + Sync;
 
     fn cancel(&self, eventual: &Self::EventualId);
-}
-
-pub fn schedule<Fut>(executor: &mut impl Executor, task: Fut) -> <Fut as Future>::Output
-where
-    Fut: Future,
-{
-    todo!()
 }
