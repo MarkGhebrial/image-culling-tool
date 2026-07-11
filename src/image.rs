@@ -8,7 +8,7 @@ use image::ImageReader;
 use image::{DynamicImage, ImageDecoder, ImageError};
 use rayon::prelude::*;
 
-use crate::async_runtime::AsyncLruCache;
+use crate::async_executor::async_lru_cache::{AsyncLoader, AsyncLruCache};
 use crate::cullfile::{Cullfile, Rating};
 use crate::image_wrapper::ImageWrapper;
 use crate::util::{merge_sort, wrap};
@@ -153,7 +153,7 @@ fn load_image_from_file(
 }
 
 pub struct ImageLoader;
-impl crate::async_runtime::AsyncLoader for ImageLoader {
+impl AsyncLoader for ImageLoader {
     type Key = PathBuf;
     type Value = Arc<ImageWrapper>;
 
