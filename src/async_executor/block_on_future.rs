@@ -1,5 +1,5 @@
 use std::{
-    pin::{Pin, pin},
+    pin::{pin},
     sync::Arc,
     task::{Context, Poll, Wake, Waker},
     thread::{self, Thread},

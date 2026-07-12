@@ -1,5 +1,6 @@
 pub mod async_lru_cache;
 pub mod block_on_future;
+#[allow(unused)] // We're not currently using anything from this module
 pub mod rw_cell;
 pub mod thread_executor;
 

@@ -1,12 +1,8 @@
-use eframe::egui::ahash::HashMap;
 use lru::LruCache;
 use std::{
     hash::Hash,
     num::NonZeroUsize,
-    pin::Pin,
     sync::{Arc, Mutex},
-    task::{Poll, Wake},
-    thread::Thread,
 };
 
 use crate::async_executor::{Eventual, Executor};
@@ -18,44 +14,11 @@ pub trait AsyncLoader {
     fn load(key: Self::Key) -> impl Future<Output = Self::Value> + Send;
 }
 
-/// TODO: Refactor AsyncLruCache to be generic over this
-pub trait AsyncCacheStore {
-    type Key;
-    type Value;
-
-    fn get(&mut self, key: &Self::Key) -> Option<&Self::Value>;
-}
-impl<K, V> AsyncCacheStore for LruCache<K, V>
-where
-    K: Hash + Eq,
-{
-    type Key = K;
-    type Value = V;
-
-    fn get(&mut self, key: &K) -> Option<&V> {
-        LruCache::get(self, key)
-    }
-}
-impl<K, V> AsyncCacheStore for HashMap<K, V>
-where
-    K: Hash + Eq,
-{
-    type Key = K;
-    type Value = V;
-
-    fn get(&mut self, key: &K) -> Option<&V> {
-        HashMap::get(self, key)
-    }
-}
-
-
 /// An LRU cache that loads items asynchronously.
 ///
-/// Generic parameters:
-/// - `K`: The key of the LRU cache
-/// - `V`: The value of the LRU cache
-/// - `C`: The async closure that's used to load items into the cache
-/// - `Fut`: The type of the future returned by `C`
+/// ## Generic parameters:
+/// - `L`: The `AsyncLoader` that'll generate futures for loading items
+/// - `E`: The `Executor` that'll be used to execute those futures
 pub struct AsyncLruCache<L, E>
 where
     L: AsyncLoader,
@@ -87,39 +50,7 @@ where
     L::Value: Send + Sync + Clone,
 {
     pub fn new(cache_size: NonZeroUsize, executor: E) -> Self {
-        // let cache: Arc<
-        //     Mutex<LruCache<L::Key, FutureStatus<Pin<Box<dyn Future<Output = L::Value> + Send>>>>>,
-        // > = Arc::new(Mutex::new(LruCache::new(cache_size)));
-
-        let cache: Arc<Mutex<LruCache<L::Key, Eventual<E, L::Value>>>> =
-            Arc::new(Mutex::new(LruCache::new(cache_size)));
-
-        // let worker_thread_kill_mutex = Arc::new(Mutex::new(false));
-
-        // Create a weak pointer to the cache structure. The worker thread doesn't need to outlive the
-        // AsyncLruCache object, so
-        // let cache_copy = Arc::downgrade(&cache);
-        // let kill_mutex_copy = worker_thread_kill_mutex.clone();
-
-        // Spawn the thread that'll service all the outstanding futures
-        // let thread_handle = std::thread::spawn(move || {
-        //     // Wakes up this thread when a future finishes doing its thing
-        //     let waker = Arc::new(ThreadWaker(thread::current()));
-        //     loop {
-        //         // If the kill mutex is true, break out of the loop and kill the thread.
-        //         if *kill_mutex_copy.lock().unwrap() {
-        //             break;
-        //         }
-
-        //         for (_, future_status) in cache_copy.upgrade().unwrap().lock().unwrap().iter_mut() {
-        //             future_status.poll(&mut Context::from_waker(&waker.clone().into()));
-        //         }
-
-        //         // Park the thread until the waker wakes it up. TODO: What happens to this thread when
-        //         // the AsyncLruCache object is deallocated? Does this thread stay parked forever?
-        //         thread::park();
-        //     }
-        // });
+        let cache = Arc::new(Mutex::new(LruCache::new(cache_size)));
 
         Self {
             cache,
