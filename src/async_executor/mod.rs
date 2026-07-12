@@ -22,6 +22,10 @@ where
     pub fn get(&self) -> Option<&T> {
         self.value.get()
     }
+
+    pub fn is_loaded(&self) -> bool {
+        self.get().is_some()
+    }
 }
 impl<E, T> Drop for Eventual<E, T>
 where

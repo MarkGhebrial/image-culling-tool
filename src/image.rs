@@ -9,6 +9,7 @@ use image::{DynamicImage, ImageDecoder, ImageError};
 use rayon::prelude::*;
 
 use crate::async_executor::async_lru_cache::{AsyncLoader, AsyncLruCache};
+use crate::async_executor::thread_executor::ThreadExecutor;
 use crate::cullfile::{Cullfile, Rating};
 use crate::image_wrapper::ImageWrapper;
 use crate::util::{merge_sort, wrap};
@@ -31,7 +32,7 @@ pub struct ImageCollection {
     /// A list of image thumbnails and their metadata
     images: Vec<ImageWithMetadata>,
     /// Used to asynchronously load full resolution images from disk
-    pub cache: AsyncLruCache<ImageLoader>,
+    pub cache: AsyncLruCache<ImageLoader, ThreadExecutor>,
 
     cullfile: Cullfile,
 }
@@ -97,7 +98,7 @@ impl ImageCollection {
 
         Ok(Self {
             images,
-            cache: AsyncLruCache::new(10.try_into().unwrap()),
+            cache: AsyncLruCache::new(10.try_into().unwrap(), ThreadExecutor),
             cullfile,
         })
     }
