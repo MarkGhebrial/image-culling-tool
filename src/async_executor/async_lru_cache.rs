@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::async_executor::{Eventual, Executor};
+use crate::async_executor::Eventual;
 
 pub trait AsyncLoader {
     type Key;
@@ -19,10 +19,9 @@ pub trait AsyncLoader {
 /// ## Generic parameters:
 /// - `L`: The `AsyncLoader` that'll generate futures for loading items
 /// - `E`: The `Executor` that'll be used to execute those futures
-pub struct AsyncLruCache<L, E>
+pub struct AsyncLruCache<L>
 where
     L: AsyncLoader,
-    E: Executor,
 {
     /// Wow, that's quite the type. Let me break it down for you:
     /// - The combination of `Arc` and `Mutex` allows us to sync and modify the `LruCache` between threads.
@@ -36,25 +35,20 @@ where
     ///   It's what we poll to load items into the cache.
     /// 
     /// TODO: Update the above comment
-    cache: Arc<Mutex<LruCache<L::Key, Eventual<E, L::Value>>>>,
-
-    /// The executor used to execute the futures returned by the loader
-    executor: E,
+    cache: Arc<Mutex<LruCache<L::Key, Eventual<L::Value>>>>,
 }
 
-impl<L, E> AsyncLruCache<L, E>
+impl<L> AsyncLruCache<L>
 where
-    E: Executor,
     L: AsyncLoader + 'static,
     L::Key: Hash + Eq + Clone + Send,
     L::Value: Send + Sync + Clone,
 {
-    pub fn new(cache_size: NonZeroUsize, executor: E) -> Self {
+    pub fn new(cache_size: NonZeroUsize) -> Self {
         let cache = Arc::new(Mutex::new(LruCache::new(cache_size)));
 
         Self {
             cache,
-            executor,
         }
     }
 
@@ -67,7 +61,7 @@ where
         match cache.get(&key) {
             Some(eventual) => eventual.get().map(|v| v.clone()),
             None => {
-                let eventual = self.executor.schedule(L::load(key.clone()));
+                let eventual = super::thread_executor::schedule(L::load(key.clone()));
                 let out = eventual.get().map(|v| v.clone());
                 cache.put(key, eventual);
                 out

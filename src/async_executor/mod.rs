@@ -7,18 +7,12 @@ pub mod thread_executor;
 use std::sync::{Arc, OnceLock};
 
 /// Represents a value of type T that'll be eventually be loaded by an executor of type E
-pub struct Eventual<E, T>
-where
-    E: Executor,
-{
-    id: E::EventualId,
-    executor: E,
-    // value_state: Mutex<LoadedState<T>>,
+pub struct Eventual<T> {
+    // cancel_handle: Arc<Mutex<bool>>,
     value: Arc<OnceLock<T>>,
 }
-impl<E, T> Eventual<E, T>
-where
-    E: Executor,
+
+impl<T> Eventual<T>
 {
     pub fn get(&self) -> Option<&T> {
         self.value.get()
@@ -28,23 +22,20 @@ where
         self.get().is_some()
     }
 }
-impl<E, T> Drop for Eventual<E, T>
-where
-    E: Executor,
-{
+impl<T> Drop for Eventual<T> {
     fn drop(&mut self) {
-        self.executor.cancel(&self.id);
+        // *self.cancel_handle.lock() = true;
     }
 }
 
-pub trait Executor: Sized {
-    /// Used to uniquely identify the `Eventual`s that are handed out
-    type EventualId;
+// pub trait Executor: Sized {
+//     /// Used to uniquely identify the `Eventual`s that are handed out
+//     type EventualId;
 
-    fn schedule<'a, Fut>(&'a self, task: Fut) -> Eventual<Self, <Fut as Future>::Output>
-    where
-        Fut: Future + Send + 'static,
-        Fut::Output: Send + Sync;
+//     fn schedule<'a, Fut>(&'a self, task: Fut) -> Eventual<<Fut as Future>::Output>
+//     where
+//         Fut: Future + Send + 'static,
+//         Fut::Output: Send + Sync;
 
-    fn cancel(&self, eventual: &Self::EventualId);
-}
+//     fn cancel(&self, eventual: &Self::EventualId);
+// }
