@@ -3,6 +3,7 @@ pub mod block_on_future;
 #[allow(unused)] // We're not currently using anything from this module
 pub mod rw_cell;
 pub mod thread_executor;
+pub mod future_status;
 
 use std::sync::{Arc, OnceLock};
 

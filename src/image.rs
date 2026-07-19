@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::sync::Arc;
-use std::time;
+use std::time::{self, Instant};
 use std::{fs, path::PathBuf};
 
 use image::ImageReader;
@@ -137,17 +137,27 @@ fn load_image_from_file(
     path: impl AsRef<Path>,
     thumb_size: u32,
 ) -> Result<Arc<ImageWrapper>, image::ImageError> {
+    let start = Instant::now();
+
     let mut image_decoder = ImageReader::open(path)?.into_decoder()?;
     let orientation = image_decoder
         .orientation()
         .unwrap_or(image::metadata::Orientation::NoTransforms);
 
+    let time_to_open = start.elapsed();
+
     let mut image = DynamicImage::from_decoder(image_decoder)?;
+    let time_to_load = start.elapsed() - time_to_open;
+    
     image.apply_orientation(orientation);
 
     if thumb_size != 0 {
         image = image.thumbnail(thumb_size, thumb_size);
     }
+
+    let time_to_thumb = start.elapsed() - time_to_load;
+
+    println!("Time to open: {}ms; Time to load: {}ms, Time to thumb ({}px): {}ms",time_to_open.as_secs_f64() * 1000.0, time_to_load.as_secs_f64() * 1000.0, thumb_size, time_to_thumb.as_secs_f64() * 1000.0);
 
     Ok(Arc::new(ImageWrapper(image.to_rgb8())))
 }
