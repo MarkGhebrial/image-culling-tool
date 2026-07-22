@@ -4,6 +4,9 @@ use std::sync::Arc;
 use std::time;
 use std::{fs, path::PathBuf};
 
+use eframe::egui::mutex::RwLock;
+use eframe::egui::{self, TextureOptions};
+use eframe::epaint::TextureManager;
 use image::ImageReader;
 use image::{DynamicImage, ImageDecoder, ImageError};
 use rayon::prelude::*;
@@ -23,6 +26,8 @@ pub struct ImageWithMetadata {
     pub date_captured: time::SystemTime,
 
     pub image_thumb: Arc<ImageWrapper>,
+
+    pub thumb_texture: egui::TextureId,
 
     pub rating: Rating,
 }
@@ -57,6 +62,7 @@ impl ImageCollection {
         // The size of the image thumbnails to generate, in pixels. For images that are
         // not square, this specifies the length of their long edge
         thumb_size: u32,
+        texture_manager: Arc<RwLock<TextureManager>>,
     ) -> Result<Self, std::io::Error> {
         if recursive {
             unimplemented!()
@@ -79,14 +85,23 @@ impl ImageCollection {
             .map(|entry_result| entry_result.unwrap())
             .filter(|entry| entry.path().is_file())
             .filter_map(|file| {
+                let thumb = match load_image_from_file(file.path(), thumb_size) {
+                    Ok(image) => image,
+                    Err(ImageError::IoError(_e)) => return None, // TODO: Throw an error here
+                    _ => return None,
+                };
+
+                let thumb_texture = texture_manager.write().alloc(
+                    "image thumb".to_owned(),
+                    thumb.clone(),
+                    TextureOptions::default(),
+                );
+
                 Some(ImageWithMetadata {
                     path_relative_to_cullfile: file.path(),
                     date_captured: file.metadata().unwrap().created().unwrap(),
-                    image_thumb: match load_image_from_file(file.path(), thumb_size) {
-                        Ok(image) => image,
-                        Err(ImageError::IoError(_e)) => return None, // TODO: Throw an error here
-                        _ => return None,
-                    },
+                    image_thumb: thumb,
+                    thumb_texture,
                     rating: cullfile.get_rating(file.path()),
                 })
             })

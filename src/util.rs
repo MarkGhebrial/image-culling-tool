@@ -1,8 +1,45 @@
+use eframe::egui::{self, Rect};
+
 pub fn min<T>(a: T, b: T) -> T
 where
     T: PartialOrd,
 {
     if a > b { b } else { a }
+}
+
+pub fn max<T>(a: T, b: T) -> T
+where
+    T: PartialOrd,
+{
+    if a > b { a } else { b }
+}
+
+/// Return the biggest possible rectangle that's bounded by the given rectangle
+/// and that has the given aspect ratio. The returned rectangle is centered on the
+/// bounding rectangle.
+pub fn rect_with_aspect_ratio(bounding_rect: &Rect, aspect_ratio: f32) -> Rect {
+    let bounding_aspect_ratio = bounding_rect.aspect_ratio();
+
+    // If the widget rect is wider than the image's rect, their heights should be the same
+    if bounding_aspect_ratio >= aspect_ratio {
+        Rect::from_center_size(
+            bounding_rect.center(),
+            egui::Vec2 {
+                x: bounding_rect.height() * aspect_ratio,
+                y: bounding_rect.height(),
+            },
+        )
+    }
+    // Else, their widths should be the same
+    else {
+        Rect::from_center_size(
+            bounding_rect.center(),
+            egui::Vec2 {
+                x: bounding_rect.width(),
+                y: bounding_rect.width() / aspect_ratio,
+            },
+        )
+    }
 }
 
 pub fn wrap(mut num: isize, min: isize, max: isize) -> isize {

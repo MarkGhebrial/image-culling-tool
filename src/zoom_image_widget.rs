@@ -7,6 +7,8 @@ use eframe::{
     epaint::ImageDelta,
 };
 
+use crate::util::rect_with_aspect_ratio;
+
 pub struct ZoomImage {
     texture_id: TextureId,
     // The width and height of the image in pixels
@@ -60,34 +62,13 @@ impl Widget for &mut ZoomImage {
         // width/height
         // Larger aspect ratio -> wider, shorter
         // Smaller aspect ratio -> taller, skinnier
-        let rect_aspect_ratio = rect.aspect_ratio();
+        // let rect_aspect_ratio = rect.aspect_ratio();
         let img_aspect_ratio = self.image.size()[0] as f32 / self.image.size()[1] as f32;
 
-        // If the widget rect is wider than the image's rect, their heights should be the same
-        let mut image_rect = if rect_aspect_ratio >= img_aspect_ratio {
-            Rect::from_center_size(
-                rect.center(),
-                Vec2 {
-                    x: rect.height() * img_aspect_ratio,
-                    y: rect.height(),
-                },
-            )
-        }
-        // Else, their widths should be the same
-        else {
-            Rect::from_center_size(
-                rect.center(),
-                Vec2 {
-                    x: rect.width(),
-                    y: rect.width() / img_aspect_ratio,
-                },
-            )
-        };
-
-        // Translate and scale the image
-        image_rect = image_rect
+        let image_rect = rect_with_aspect_ratio(&rect, img_aspect_ratio)
             .translate(self.zoom_translation)
             .scale_from_center(self.zoom_scale);
+
         let image_rect_response = ui.allocate_rect(image_rect, Sense::all());
 
         // If the image is being hovered
@@ -100,18 +81,7 @@ impl Widget for &mut ZoomImage {
                 let drag_amount =
                     if input.pointer.is_decidedly_dragging() && input.pointer.primary_down() {
                         let ptr = &input.pointer;
-                        // if let (Some(origin), Some(current_position)) = (ptr.press_origin(), ptr.interact_pos()) {
-                        //     origin - current_position
-                        // } else {
-                        //     Vec2::ZERO
-                        // }
                         ptr.delta()
-                        // let o = input.pointer.press_origin();
-                        // let c = input.pointer.interact_pos();.map(|pos| pos - input.pointer.press_origin().ma);
-
-                        // let drag_amount = c - o;
-
-                        // println!("Pointer is dragging from {:?} to {:?}", o, c);
                     } else {
                         Vec2::ZERO
                     };

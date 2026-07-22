@@ -5,7 +5,13 @@ use eframe::{
     epaint::{CircleShape, RectShape},
 };
 
-use crate::{cullfile::Rating, image::ImageCollection, util::{self, wrap}, zoom_image_widget::ZoomImage};
+use crate::{
+    cullfile::Rating,
+    image::ImageCollection,
+    image_gallery::ImageGallery,
+    util::{self, wrap},
+    zoom_image_widget::ZoomImage,
+};
 
 // enum AppEvents {
 //     GoToNextImage,
@@ -18,17 +24,26 @@ use crate::{cullfile::Rating, image::ImageCollection, util::{self, wrap}, zoom_i
 pub struct MyApp {
     images: ImageCollection,
     selected_image_index: usize,
+
     image_zoom_widget: ZoomImage,
+    image_gallery_widget: ImageGallery,
+
+    /// True: Show the image gallery widget in the main panel
+    /// False: Show the image zoom widget in the main panel
+    show_gallery: bool,
 }
 
 impl MyApp {
     pub fn new(images: ImageCollection, ctx: &egui::Context) -> Self {
         let image_zoom_widget = ZoomImage::new(images[0].image_thumb.clone(), ctx);
+        let image_gallery_widget = ImageGallery::new(150.0);
 
         Self {
             images,
             selected_image_index: 0,
             image_zoom_widget,
+            image_gallery_widget,
+            show_gallery: false,
         }
     }
 
@@ -62,6 +77,12 @@ impl eframe::App for MyApp {
             if input.key_pressed(Key::R) {
                 self.image_zoom_widget.reset_zoom();
             }
+            if input.key_pressed(Key::S) {
+                self.save();
+            }
+            if input.key_pressed(Key::G) {
+                self.show_gallery = !self.show_gallery;
+            }
 
             let rating = &mut self.images[self.selected_image_index].rating;
             if input.key_pressed(Key::Num5) {
@@ -74,10 +95,6 @@ impl eframe::App for MyApp {
                 *rating = Rating::Two
             } else if input.key_pressed(Key::Num1) {
                 *rating = Rating::One
-            }
-
-            if input.key_pressed(Key::S) {
-                self.save();
             }
         });
 
@@ -166,11 +183,15 @@ impl eframe::App for MyApp {
 
         // Draw the central panel. The part of the screen where the selected image is displayed
         egui::CentralPanel::default().show(ctx, |ui| {
-            let image = self
-                .images
-                .get_full_resolution_image(self.selected_image_index);
-            self.image_zoom_widget.set_image(image, ctx);
-            ui.add(&mut self.image_zoom_widget);
+            if self.show_gallery {
+                self.image_gallery_widget.show(&mut self.images, &mut self.selected_image_index, ui);
+            } else {
+                let image = self
+                    .images
+                    .get_full_resolution_image(self.selected_image_index);
+                self.image_zoom_widget.set_image(image, ctx);
+                ui.add(&mut self.image_zoom_widget);
+            }
         });
     }
 

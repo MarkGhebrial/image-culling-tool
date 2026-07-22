@@ -1,7 +1,9 @@
+mod allocated_texture;
 mod app;
 mod async_runtime;
 mod cullfile;
 mod image;
+mod image_gallery;
 mod image_wrapper;
 mod util;
 mod zoom_image_widget;
@@ -37,21 +39,6 @@ fn main() {
 
     println!("{}", path.to_str().unwrap());
 
-    let images = match ImageCollection::load_images(&path, false, 600) {
-        Ok(images) => images,
-        Err(e) => {
-            println!("Error loading images: {:?}", e);
-            exit(-1);
-        }
-    };
-
-    for image in images.iter() {
-        println!(
-            "Found image at {}",
-            image.path_relative_to_cullfile.to_str().unwrap()
-        );
-    }
-
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_app_id("cull tool"), //.with_inner_size([320.0, 240.0]),
         ..Default::default()
@@ -59,7 +46,25 @@ fn main() {
     eframe::run_native(
         "cull tool",
         options,
-        Box::new(|cc| Ok(Box::new(MyApp::new(images, &cc.egui_ctx)))),
+        Box::new(|cc| {
+            let images =
+                match ImageCollection::load_images(&path, false, 600, cc.egui_ctx.tex_manager()) {
+                    Ok(images) => images,
+                    Err(e) => {
+                        println!("Error loading images: {:?}", e);
+                        exit(-1);
+                    }
+                };
+
+            for image in images.iter() {
+                println!(
+                    "Found image at {}",
+                    image.path_relative_to_cullfile.to_str().unwrap()
+                );
+            }
+
+            Ok(Box::new(MyApp::new(images, &cc.egui_ctx)))
+        }),
     )
     .unwrap();
 }
