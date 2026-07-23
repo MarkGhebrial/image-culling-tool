@@ -184,7 +184,11 @@ impl eframe::App for MyApp {
         // Draw the central panel. The part of the screen where the selected image is displayed
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.show_gallery {
-                self.image_gallery_widget.show(&mut self.images, &mut self.selected_image_index, ui);
+                self.image_gallery_widget.show(
+                    &mut self.images,
+                    &mut self.selected_image_index,
+                    ui,
+                );
             } else {
                 let image = self
                     .images

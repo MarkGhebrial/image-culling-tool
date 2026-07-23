@@ -4,7 +4,7 @@ use eframe::{
 };
 
 use crate::{
-    image::{ImageCollection, ImageWithMetadata},
+    image::ImageCollection,
     util::{max, rect_with_aspect_ratio},
 };
 
@@ -22,7 +22,12 @@ impl ImageGallery {
         }
     }
 
-    pub fn show(&mut self, images: &ImageCollection, selected_image_index: &mut usize, ui: &mut egui::Ui) {
+    pub fn show(
+        &mut self,
+        images: &ImageCollection,
+        selected_image_index: &mut usize,
+        ui: &mut egui::Ui,
+    ) {
         let scroll_output = egui::ScrollArea::vertical().show(ui, |ui| {
             let available_width = ui.available_width();
 
@@ -46,7 +51,6 @@ impl ImageGallery {
 
                 let response = ui.allocate_rect(rect, Sense::hover() | Sense::click());
 
-                    
                 if ui.is_rect_visible(rect) {
                     let corner_radius: f32 = 4.0;
 
@@ -56,6 +60,7 @@ impl ImageGallery {
                         ui.painter()
                             .add(RectShape::filled(rect, corner_radius, bg_color));
                     }
+                    // Display a gray background for the currently hovered image
                     else if response.hovered() {
                         ui.painter()
                             .add(RectShape::filled(rect, corner_radius, Color32::GRAY));
@@ -66,8 +71,8 @@ impl ImageGallery {
                     }
 
                     let img_aspect_ratio =
-                    image.image_thumb.size()[0] as f32 / image.image_thumb.size()[1] as f32;
-                    
+                        image.image_thumb.size()[0] as f32 / image.image_thumb.size()[1] as f32;
+
                     // Display the image thumbnail
                     let mut mesh = Mesh::with_texture(image.thumb_texture);
                     mesh.add_rect_with_uv(
