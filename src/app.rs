@@ -7,19 +7,11 @@ use eframe::{
 
 use crate::{
     cullfile::Rating,
-    image::ImageCollection,
+    image::{ImageCollection, ImageWithMetadata},
     image_gallery::ImageGallery,
     util::{self, wrap},
     zoom_image_widget::ZoomImage,
 };
-
-// enum AppEvents {
-//     GoToNextImage,
-//     GoToPrevImage,
-//     ResetZoom,
-//     RateSelectedImage(Rating),
-//     SaveCullfile,
-// }
 
 pub struct MyApp {
     images: ImageCollection,
@@ -51,9 +43,13 @@ impl MyApp {
         self.images.save_cullfile();
     }
 
-    // fn selected_image(&self) -> &ImageWithMetadata {
-    //     &self.images[self.selected_image_index]
-    // }
+    fn selected_image(&self) -> &ImageWithMetadata {
+        &self.images[self.selected_image_index]
+    }
+
+    fn selected_image_mut(&mut self) -> &mut ImageWithMetadata {
+        &mut self.images[self.selected_image_index]
+    }
 }
 
 impl eframe::App for MyApp {
@@ -84,7 +80,7 @@ impl eframe::App for MyApp {
                 self.show_gallery = !self.show_gallery;
             }
 
-            let rating = &mut self.images[self.selected_image_index].rating;
+            let rating = &mut self.selected_image_mut().rating;
             if input.key_pressed(Key::Num5) {
                 *rating = Rating::Five
             } else if input.key_pressed(Key::Num4) {
@@ -107,9 +103,11 @@ impl eframe::App for MyApp {
             .resizable(false)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    let indicator_color = match self.images.cache.is_loaded(
-                        &self.images[self.selected_image_index].path_relative_to_cullfile,
-                    ) {
+                    let indicator_color = match self
+                        .images
+                        .cache
+                        .is_loaded(&self.selected_image().path_relative_to_cullfile)
+                    {
                         true => Color32::GREEN,
                         false => Color32::RED,
                     };
@@ -134,11 +132,11 @@ impl eframe::App for MyApp {
                         let mut circle = CircleShape::stroke(
                             rect.center(),
                             5.0,
-                            Stroke::new(2.5, Color32::GRAY),
+                            Stroke::new(2.5f32, Color32::GRAY),
                         );
 
                         // Fill the circles according to the image's rating
-                        if star_idx < self.images[self.selected_image_index].rating as usize {
+                        if star_idx < self.selected_image().rating as usize {
                             circle.fill = Color32::GRAY;
                         }
                         ui.painter().add(circle);
@@ -158,7 +156,7 @@ impl eframe::App for MyApp {
                     // Display the file name of the current image
                     ui.label(format!(
                         "{}",
-                        self.images[self.selected_image_index]
+                        self.selected_image()
                             .path_relative_to_cullfile
                             .file_name()
                             .unwrap()
